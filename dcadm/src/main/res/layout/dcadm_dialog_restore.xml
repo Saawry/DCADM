@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Icon -->
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_circle_light"
+            android:padding="16dp"
+            android:src="@drawable/outline_restore_24"
+             />
+
+        <!-- Title -->
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/dcadm_dialog_restore_title"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- Description -->
+
+        <TextView
+            android:id="@+id/tvDesc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:gravity="center"
+            android:text="@string/dcadm_dialog_restore_desc_1"
+            android:textColor="?android:textColorSecondary"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/tvDesc2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:text="@string/dcadm_dialog_restore_desc_2"
+            android:textColor="?android:textColorSecondary"
+            android:textSize="15sp" />
+
+        <!-- Warning Card -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_warning"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="14dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="12dp"
+                android:src="@drawable/outline_warning_amber_24"
+                app:tint="?attr/colorError" />
+
+            <TextView
+                android:id="@+id/tvDesc3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/dcadm_dialog_restore_warning"
+                android:textColor="?attr/colorError"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- Buttons -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCancel"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="@string/dcadm_dialog_restore_btn_fresh_start"
+                android:textAllCaps="false"
+                app:icon="@drawable/outline_add_circle_24"
+                app:iconGravity="textStart" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRestore"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginStart="12dp"
+                android:text="@string/dcadm_dialog_restore_btn_restore"
+                android:textAllCaps="false"
+                app:cornerRadius="14dp"
+                app:icon="@drawable/outline_restore_24"
+                app:iconGravity="textStart" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

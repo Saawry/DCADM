@@ -1,0 +1,83 @@
+<resources>
+    <string name="dcadm_lib_name">Dcadm Library</string>
+
+    <!-- Common / Actions -->
+    <string name="dcadm_btn_cancel">Cancel</string>
+    <string name="dcadm_btn_ok">OK</string>
+    <string name="dcadm_error_unknown">Unknown error</string>
+    <string name="dcadm_error_no_user_logged_in">No user logged in</string>
+    <string name="dcadm_error_permission_denied">Permission denied</string>
+
+    <!-- Login Screen -->
+    <string name="dcadm_login_subtitle">Let\'s get started...</string>
+    <string name="dcadm_login_app_title">Application</string>
+    <string name="dcadm_login_terms_agreement">I agree to the Terms &amp; Conditions and Privacy Policy</string>
+    <string name="dcadm_login_btn_sign_in">Sign in with Google</string>
+    <string name="dcadm_login_powered_by">powered by:</string>
+    <string name="dcadm_login_company_name">Publisher</string>
+    <string name="dcadm_login_company_url">publisher.com</string>
+    <string name="dcadm_login_agree_terms_toast">Please agree to the terms and conditions</string>
+    <string name="dcadm_login_failed">Sign-in failed: %1$s</string>
+    <string name="dcadm_login_checking_drive_permissions">Checking Drive permissions...</string>
+    <string name="dcadm_login_checking_restoring_backup">Checking and restoring backup...</string>
+
+    <!-- Registration Screen -->
+    <string name="dcadm_registration_title">Complete Registration</string>
+    <string name="dcadm_registration_subtitle">Complete your business profile</string>
+    <string name="dcadm_registration_hint_email">Email</string>
+    <string name="dcadm_registration_hint_name">Full Name</string>
+    <string name="dcadm_registration_hint_shop_name">Shop Name</string>
+    <string name="dcadm_registration_hint_country">Country</string>
+    <string name="dcadm_registration_hint_phone">Phone Number</string>
+    <string name="dcadm_registration_hint_address">Business Address</string>
+    <string name="dcadm_registration_btn_complete">Complete Registration</string>
+    <string name="dcadm_registration_fill_all_fields">Please fill all fields</string>
+    <string name="dcadm_registration_failed">Registration failed</string>
+
+    <!-- Settings / Backup Screen -->
+    <string name="dcadm_settings_title">Settings &amp; Backup</string>
+    <string name="dcadm_settings_user_name_placeholder">User Name</string>
+    <string name="dcadm_settings_shop_name_placeholder">Shop Name</string>
+    <string name="dcadm_settings_country_placeholder">Country</string>
+    <string name="dcadm_settings_section_automatic_backup">Automatic Backup</string>
+    <string name="dcadm_settings_last_backup_label">Last Backup</string>
+    <string name="dcadm_settings_last_backup_never">Never</string>
+    <string name="dcadm_settings_btn_save_schedule">Save Schedule</string>
+    <string name="dcadm_settings_section_google_drive">Google Drive</string>
+    <string name="dcadm_settings_drive_not_connected">Not connected</string>
+    <string name="dcadm_settings_btn_backup_now">Backup Now</string>
+    <string name="dcadm_settings_btn_restore">Restore</string>
+    <string name="dcadm_backup_schedule_saved">Backup schedule saved</string>
+    <string name="dcadm_backup_checking_credentials">Checking credentials...</string>
+    <string name="dcadm_backup_enqueued_background">Backup enqueued in background</string>
+    <string name="dcadm_restore_enqueued_background">Restore enqueued in background</string>
+    <string name="dcadm_backup_failed_contact_support">Backup failed, contact support</string>
+
+    <!-- Standalone Backup Screen -->
+    <string name="dcadm_backup_success">Backup Successful!</string>
+    <string name="dcadm_restore_success">Restore Successful!</string>
+    <string name="dcadm_backup_btn_backup">Backup to Google Drive</string>
+    <string name="dcadm_backup_btn_restore">Restore from Google Drive</string>
+
+    <!-- Dialog Configure Drive -->
+    <string name="dcadm_dialog_configure_drive_title">Configure Drive Backup</string>
+    <string name="dcadm_dialog_configure_drive_desc">Authorize and Configure your google drive to backup data so that you don\'t loose it.</string>
+    <string name="dcadm_dialog_configure_drive_btn_configure">Configure</string>
+
+    <!-- Dialog Restore -->
+    <string name="dcadm_dialog_restore_title">Restore Data</string>
+    <string name="dcadm_dialog_restore_desc_1">Restore your database from Google Drive.</string>
+    <string name="dcadm_dialog_restore_desc_2">Your latest backup will replace the current data on this device.</string>
+    <string name="dcadm_dialog_restore_warning">Current data on this device will be permanently replaced.</string>
+    <string name="dcadm_dialog_restore_btn_fresh_start">Fresh Start</string>
+    <string name="dcadm_dialog_restore_btn_restore">Restore</string>
+
+    <!-- Background Workers -->
+    <string name="dcadm_worker_backup_progress">Backing up data to Google Drive...</string>
+    <string name="dcadm_worker_backup_title">Data Backup</string>
+    <string name="dcadm_worker_backup_channel_name">Backup Operations</string>
+    <string name="dcadm_worker_restore_progress">Restoring large database from Google Drive...</string>
+    <string name="dcadm_worker_restore_title">Data Restore</string>
+    <string name="dcadm_worker_restore_channel_name">Restore Operations</string>
+    <string name="dcadm_worker_cancel">Cancel</string>
+</resources>
