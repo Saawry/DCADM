@@ -91,11 +91,11 @@
                                 android:textStyle="bold" />
 
                             <TextView
-                                android:id="@+id/tvShopName"
+                                android:id="@+id/tvUserType"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="@string/dcadm_settings_shop_name_placeholder"
+                                android:text="@string/dcadm_settings_user_type_placeholder"
                                 android:textColor="?attr/colorOnSurfaceVariant"
                                 android:textSize="14sp" />
 

@@ -98,21 +98,7 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Shop -->
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:hint="@string/dcadm_registration_hint_shop_name"
-                    app:startIconDrawable="@drawable/baseline_storefront_24">
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etShopName"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
-
-                </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Country -->
                 <com.google.android.material.textfield.TextInputLayout

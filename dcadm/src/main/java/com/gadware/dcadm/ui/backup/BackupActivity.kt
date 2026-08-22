@@ -230,7 +230,9 @@ class BackupActivity : AppCompatActivity() {
                     binding.tvLoginEmail.text = uiState.userEmail ?: "Unknown"
                     uiState.userProfile?.let { profile ->
                         binding.tvUserName.text = profile.name
-                        binding.tvShopName.text = profile.shopName
+                        val userTypeCapitalized = profile.userType.replaceFirstChar { it.uppercase() }
+                        val statusCapitalized = profile.status.replaceFirstChar { it.uppercase() }
+                        binding.tvUserType.text = "$userTypeCapitalized Account • $statusCapitalized"
                         binding.tvUserCountry.text = profile.country
                     }
 

@@ -75,10 +75,6 @@ class RegistrationActivity : AppCompatActivity() {
             viewModel.onNameChanged(text.toString())
         }
 
-        binding.etShopName.doOnTextChanged { text, _, _, _ ->
-            viewModel.onShopNameChanged(text.toString())
-        }
-
         binding.etPhone.doOnTextChanged { text, _, _, _ ->
             viewModel.onPhoneChanged(text.toString())
         }

@@ -23,13 +23,12 @@
 
     <!-- Registration Screen -->
     <string name="dcadm_registration_title">Complete Registration</string>
-    <string name="dcadm_registration_subtitle">Complete your business profile</string>
+    <string name="dcadm_registration_subtitle">Complete your profile</string>
     <string name="dcadm_registration_hint_email">Email</string>
     <string name="dcadm_registration_hint_name">Full Name</string>
-    <string name="dcadm_registration_hint_shop_name">Shop Name</string>
     <string name="dcadm_registration_hint_country">Country</string>
     <string name="dcadm_registration_hint_phone">Phone Number</string>
-    <string name="dcadm_registration_hint_address">Business Address</string>
+    <string name="dcadm_registration_hint_address">Address</string>
     <string name="dcadm_registration_btn_complete">Complete Registration</string>
     <string name="dcadm_registration_fill_all_fields">Please fill all fields</string>
     <string name="dcadm_registration_failed">Registration failed</string>
@@ -37,7 +36,7 @@
     <!-- Settings / Backup Screen -->
     <string name="dcadm_settings_title">Settings &amp; Backup</string>
     <string name="dcadm_settings_user_name_placeholder">User Name</string>
-    <string name="dcadm_settings_shop_name_placeholder">Shop Name</string>
+    <string name="dcadm_settings_user_type_placeholder">Free Account • Active</string>
     <string name="dcadm_settings_country_placeholder">Country</string>
     <string name="dcadm_settings_section_automatic_backup">Automatic Backup</string>
     <string name="dcadm_settings_last_backup_label">Last Backup</string>

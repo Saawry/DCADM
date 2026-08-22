@@ -19,7 +19,6 @@ import java.util.Calendar
 data class RegistrationUiState(
     val email: String = "",
     val name: String = "",
-    val shopName: String = "",
     val phoneNumber: String = "",
     val address: String = "",
     val selectedCountry: Country? = null,
@@ -48,10 +47,6 @@ class RegistrationViewModel(
         _uiState.update { it.copy(name = value) }
     }
 
-    fun onShopNameChanged(value: String) {
-        _uiState.update { it.copy(shopName = value) }
-    }
-
     fun onCountrySelected(country: Country) {
         _uiState.update { it.copy(selectedCountry = country) }
     }
@@ -78,7 +73,6 @@ class RegistrationViewModel(
         val state = _uiState.value
 
         if (state.name.isBlank() ||
-            state.shopName.isBlank() ||
             state.phoneNumber.isBlank() ||
             state.address.isBlank() ||
             state.selectedCountry == null
@@ -90,7 +84,6 @@ class RegistrationViewModel(
         }
 
         viewModelScope.launch {
-
             _uiState.update {
                 it.copy(
                     isRegistering = true,
@@ -111,10 +104,11 @@ class RegistrationViewModel(
             val userProfile = UserProfile(
                 email = state.email,
                 name = state.name.trim(),
-                shopName = state.shopName.trim(),
                 phoneNumber = formattedPhoneNumber,
                 address = state.address.trim(),
                 country = state.selectedCountry.name,
+                userType = "free",
+                status = "active",
                 regDate = regDate,
                 regStatus = "registered",
                 userId = uid,
