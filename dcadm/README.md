@@ -38,7 +38,7 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.Saawry:dcadm:1.0.0")
+    implementation("com.github.Saawry:dcadm:1.1.0")
     
     // Google Services plugin is required for Firebase
     // Room and Coroutines as used in your host app
