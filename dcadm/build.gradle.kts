@@ -1,13 +1,12 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
-    id("com.google.devtools.ksp")
+    alias(libs.plugins.ksp)
     id("maven-publish")
 }
 
 android {
     namespace = "com.gadware.dcadm"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 24
@@ -60,7 +59,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.Saawry"
                 artifactId = "dcadm"
-                version = "1.1.0"
+                version = "1.2.0"
             }
         }
     }

@@ -43,7 +43,7 @@ class BackupActivity : AppCompatActivity() {
             Locale.of(language)
         } else {
             // Android 14 and below uses the standard BCP 47 language tag parser
-           Locale(language)
+            Locale.forLanguageTag(language)
         }
         val config = android.content.res.Configuration(newBase.resources.configuration)
         config.setLocale(locale)
@@ -182,15 +182,16 @@ class BackupActivity : AppCompatActivity() {
 
         binding.btnBack.setOnClickListener { finish() }
 
-       
-
-        
         binding.btnBackupDrive.setOnClickListener {
             viewModel.onManualBackupClicked(this)
         }
 
         binding.btnRestoreDrive.setOnClickListener {
             viewModel.onManualRestoreClicked(this)
+        }
+
+        binding.cardAdvanceOptions.setOnClickListener {
+            DcadmConfig.openAdvanceOptions(this)
         }
 
         binding.btnSaveRoutine.setOnClickListener {
@@ -227,12 +228,16 @@ class BackupActivity : AppCompatActivity() {
                     }
 
                     // PROFILE
-                    binding.tvLoginEmail.text = uiState.userEmail ?: "Unknown"
+                    binding.tvLoginEmail.text = uiState.userEmail ?: getString(R.string.dcadm_user_unknown)
                     uiState.userProfile?.let { profile ->
                         binding.tvUserName.text = profile.name
                         val userTypeCapitalized = profile.userType.replaceFirstChar { it.uppercase() }
                         val statusCapitalized = profile.status.replaceFirstChar { it.uppercase() }
-                        binding.tvUserType.text = "$userTypeCapitalized Account • $statusCapitalized"
+                        binding.tvUserType.text = getString(
+                            R.string.dcadm_user_account_status_format,
+                            userTypeCapitalized,
+                            statusCapitalized
+                        )
                         binding.tvUserCountry.text = profile.country
                     }
 
@@ -244,7 +249,7 @@ class BackupActivity : AppCompatActivity() {
                         if (uiState.isLoading) View.VISIBLE else View.GONE
 
                     binding.tvDriveStatus.text = if (uiState.driveEmail != null) {
-                        "Connected: ${uiState.driveEmail}"
+                        getString(R.string.dcadm_settings_drive_connected, uiState.driveEmail)
                     } else {
                         uiState.statusText
                     }

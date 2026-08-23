@@ -136,6 +136,38 @@ object DcadmConfig {
     fun getCompanyUrl() = companyUrl
     fun getCompanyLogoResId() = companyLogoResId
 
+    private var reportProblemActivityClassName: String? = null
+    private var supportEmail: String? = null
+
+    /**
+     * Set the class name of the host app's problem report Activity.
+     */
+    fun setReportProblemActivityClassName(className: String?) {
+        this.reportProblemActivityClassName = className
+    }
+
+    fun getReportProblemActivityClassName() = reportProblemActivityClassName
+
+    /**
+     * Set support contact email for error diagnostics and reporting.
+     */
+    fun setSupportEmail(email: String?) {
+        this.supportEmail = email
+    }
+
+    fun getSupportEmail() = supportEmail
+
+    /**
+     * Opens the AdvanceOptions Activity.
+     */
+    fun openAdvanceOptions(context: Context) {
+        val intent = android.content.Intent(context, com.gadware.dcadm.ui.advance.AdvanceOptionsActivity::class.java)
+        if (context !is android.app.Activity) {
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+
     /**
      * Loads the app logo into the provided ImageView.
      * If a custom logo was provided via [appLogoResId], it is used;

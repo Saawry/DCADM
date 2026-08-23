@@ -126,7 +126,7 @@ class AdvanceOptionsActivity : AppCompatActivity() {
     private fun shareBackupFile() {
         viewModel.createShareableBackup { file: File? ->
             if (file == null || !file.exists()) {
-                Toast.makeText(this, "Failed to create shareable backup file", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.dcadm_advance_share_failed, Toast.LENGTH_SHORT).show()
                 return@createShareableBackup
             }
 
@@ -144,7 +144,7 @@ class AdvanceOptionsActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 DcadmLog.e("AdvanceOptions", "Share failed: ${e.message}")
                 // Fallback to sending intent with standard URI
-                Toast.makeText(this, "Unable to share: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.dcadm_advance_share_error, e.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -175,10 +175,10 @@ class AdvanceOptionsActivity : AppCompatActivity() {
         if (!supportEmail.isNullOrBlank()) {
             val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
                 data = Uri.parse("mailto:$supportEmail")
-                putExtra(Intent.EXTRA_SUBJECT, "[${DcadmConfig.getAppName()}] Problem Report")
+                putExtra(Intent.EXTRA_SUBJECT, getString(R.string.dcadm_advance_report_email_subject, DcadmConfig.getAppName()))
             }
             try {
-                startActivity(Intent.createChooser(emailIntent, "Send Report"))
+                startActivity(Intent.createChooser(emailIntent, getString(R.string.dcadm_advance_send_report_title)))
                 return
             } catch (ignored: Exception) {}
         }

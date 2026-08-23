@@ -1,41 +1,41 @@
 {
   "project_info": {
-    "project_number": "421531513426",
-    "project_id": "demodrivebackup-477515",
-    "storage_bucket": "demodrivebackup-477515.firebasestorage.app"
+    "project_number": "4215.....26",
+    "project_id": "demodrive........515",
+    "storage_bucket": "demodriveb....storage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:421531513426:android:00c9efcb32374dd60ee58b",
+        "mobilesdk_app_id": "1:4215.............id:00c9efcb32374dd60ee58b",
         "android_client_info": {
-          "package_name": "com.gadware.drivebackup"
+          "package_name": "com............p"
         }
       },
       "oauth_client": [
         {
-          "client_id": "421531513426-op9s4ah4u726hvh7gsrf2u3itukhut5a.apps.googleusercontent.com",
+          "client_id": "4215315..............t5a.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.gadware.drivebackup",
-            "certificate_hash": "751769b5015d064350c361462ec3046a67d3649e"
+            "package_name": "com.g.......ep",
+            "certificate_hash": "751769b50.............6a67d3649e"
           }
         },
         {
-          "client_id": "421531513426-7fh09u5fg2euvf58koh9c0esh1fhvmth.apps.googleusercontent.com",
+          "client_id": "4215315.......................apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyAqYSrh-55TJINwt3ceJCP1lrHnyE8Lkg0"
+          "current_key": "AIzaSy.......................g0"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "421531513426-1mo0r0mmgbjj8tm5heo3lfq7makukmtf.apps.googleusercontent.com",
+              "client_id": "421................com",
               "client_type": 3
             }
           ]

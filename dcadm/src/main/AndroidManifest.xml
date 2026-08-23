@@ -9,13 +9,20 @@
     <application>
         <activity
             android:name=".ui.login.LoginActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.DcadmLibrary" />
         <activity
             android:name=".ui.registration.RegistrationActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.DcadmLibrary" />
         <activity
             android:name=".ui.backup.BackupActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.DcadmLibrary" />
+        <activity
+            android:name=".ui.advance.AdvanceOptionsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.DcadmLibrary" />
     </application>
 
 </manifest>

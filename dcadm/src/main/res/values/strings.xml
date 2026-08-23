@@ -4,6 +4,8 @@
     <!-- Common / Actions -->
     <string name="dcadm_btn_cancel">Cancel</string>
     <string name="dcadm_btn_ok">OK</string>
+    <string name="dcadm_user_unknown">Unknown</string>
+    <string name="dcadm_user_account_status_format">%1$s Account • %2$s</string>
     <string name="dcadm_error_unknown">Unknown error</string>
     <string name="dcadm_error_no_user_logged_in">No user logged in</string>
     <string name="dcadm_error_permission_denied">Permission denied</string>
@@ -18,6 +20,7 @@
     <string name="dcadm_login_company_url">publisher.com</string>
     <string name="dcadm_login_agree_terms_toast">Please agree to the terms and conditions</string>
     <string name="dcadm_login_failed">Sign-in failed: %1$s</string>
+    <string name="dcadm_login_email_retrieval_failed">Failed to retrieve email from Google Account.</string>
     <string name="dcadm_login_checking_drive_permissions">Checking Drive permissions...</string>
     <string name="dcadm_login_checking_restoring_backup">Checking and restoring backup...</string>
 
@@ -44,6 +47,7 @@
     <string name="dcadm_settings_btn_save_schedule">Save Schedule</string>
     <string name="dcadm_settings_section_google_drive">Google Drive</string>
     <string name="dcadm_settings_drive_not_connected">Not connected</string>
+    <string name="dcadm_settings_drive_connected">Connected: %1$s</string>
     <string name="dcadm_settings_btn_backup_now">Backup Now</string>
     <string name="dcadm_settings_btn_restore">Restore</string>
     <string name="dcadm_backup_schedule_saved">Backup schedule saved</string>
@@ -70,6 +74,42 @@
     <string name="dcadm_dialog_restore_warning">Current data on this device will be permanently replaced.</string>
     <string name="dcadm_dialog_restore_btn_fresh_start">Fresh Start</string>
     <string name="dcadm_dialog_restore_btn_restore">Restore</string>
+
+    <!-- Advance Options -->
+    <string name="dcadm_settings_advance_options">Advance Options</string>
+    <string name="dcadm_settings_advance_options_desc">Local database export, import, diagnostics &amp; maintenance</string>
+    <string name="dcadm_advance_title">Advance Options</string>
+    <string name="dcadm_advance_section_export">Database Export</string>
+    <string name="dcadm_advance_section_export_desc">Save a complete offline copy of your database to local storage.</string>
+    <string name="dcadm_advance_btn_export_local">Export to File</string>
+    <string name="dcadm_advance_btn_share_backup">Share Backup File</string>
+    <string name="dcadm_advance_section_import">Database Import / Restore</string>
+    <string name="dcadm_advance_section_import_desc">Restore your data from a previously exported local backup file (.zip or .db).</string>
+    <string name="dcadm_advance_btn_import_local">Import from File</string>
+    <string name="dcadm_advance_section_stats">Database Diagnostics</string>
+    <string name="dcadm_advance_db_name_label">Database Name</string>
+    <string name="dcadm_advance_db_name_placeholder">database.db</string>
+    <string name="dcadm_advance_db_size_label">Database Size</string>
+    <string name="dcadm_advance_db_size_placeholder">0 KB</string>
+    <string name="dcadm_advance_btn_integrity_check">Check Integrity &amp; Optimize</string>
+    <string name="dcadm_advance_integrity_success">Database Integrity: %1$s</string>
+    <string name="dcadm_advance_integrity_error">Integrity check failed: %1$s</string>
+    <string name="dcadm_advance_section_support">Support &amp; Troubleshooting</string>
+    <string name="dcadm_advance_btn_report_problem">Report a Problem</string>
+    <string name="dcadm_advance_report_unavailable">Report feature not configured</string>
+    <string name="dcadm_advance_report_email_subject">[%1$s] Problem Report</string>
+    <string name="dcadm_advance_send_report_title">Send Report</string>
+    <string name="dcadm_advance_share_failed">Failed to create shareable backup file</string>
+    <string name="dcadm_advance_share_error">Unable to share: %1$s</string>
+
+    <!-- Local Export/Import Messages & Dialogs -->
+    <string name="dcadm_local_export_success">Database exported successfully!</string>
+    <string name="dcadm_local_import_success">Database imported successfully!</string>
+    <string name="dcadm_local_import_failed">Database import failed. Please check the file.</string>
+    <string name="dcadm_import_confirm_title">Restore Local Database?</string>
+    <string name="dcadm_import_confirm_msg">Importing this backup will overwrite and replace the existing data on this device. Are you sure you want to proceed?</string>
+    <string name="dcadm_import_confirm_btn">Yes, Replace Data</string>
+    <string name="dcadm_share_chooser_title">Share Database Backup</string>
 
     <!-- Background Workers -->
     <string name="dcadm_worker_backup_progress">Backing up data to Google Drive...</string>

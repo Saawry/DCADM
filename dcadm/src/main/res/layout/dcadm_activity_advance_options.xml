@@ -130,7 +130,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="database.db"
+                                android:text="@string/dcadm_advance_db_name_placeholder"
+                                tools:text="database.db"
                                 android:textColor="?attr/colorOnSurface"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
@@ -154,7 +155,8 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="0 KB"
+                                android:text="@string/dcadm_advance_db_size_placeholder"
+                                tools:text="0 KB"
                                 android:textColor="?attr/colorOnSurface"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />

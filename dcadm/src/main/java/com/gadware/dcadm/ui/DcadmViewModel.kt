@@ -59,7 +59,17 @@ data class DcadmUiState(
     val success: Boolean = false,
     val restoreSuccess: Boolean = false,
     val restoreStatusText: String = "",
-    val restoreError: String? = null
+    val restoreError: String? = null,
+
+    // Local DB Export/Import & Advance Options state
+    val isExportingLocal: Boolean = false,
+    val isImportingLocal: Boolean = false,
+    val localExportSuccess: Boolean = false,
+    val localImportSuccess: Boolean = false,
+    val localOperationMessage: String? = null,
+    val databaseStats: com.gadware.dcadm.data.DatabaseStats? = null,
+    val integrityCheckResult: String? = null,
+    val isIntegrityChecking: Boolean = false
 )
 
 class DcadmViewModel(
@@ -67,7 +77,8 @@ class DcadmViewModel(
     private val authManager: GoogleAuthManager,
     private val userRepository: UserRepository,
     private val sessionManager: SessionManager,
-    private val workManager: WorkManager
+    private val workManager: WorkManager,
+    private val backupRepository: BackupRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -321,7 +332,7 @@ class DcadmViewModel(
             val firebaseUser = signInResult.getOrThrow()
             val email = firebaseUser.email
             if (email.isNullOrBlank()) {
-                return Result.failure(Exception("Failed to retrieve email from Google Account."))
+                return Result.failure(Exception(applicationContext.getString(R.string.dcadm_login_email_retrieval_failed)))
             }
             driveEmail = email
             userRepository.updateDriveEmail(uid, email, applicationContext)
@@ -393,6 +404,133 @@ class DcadmViewModel(
             }
         }
     }
+
+    // --- Local DB Export & Import ---
+
+    fun loadDatabaseStats() {
+        if (backupRepository == null) return
+        val stats = backupRepository.getDatabaseStats()
+        _uiState.update { it.copy(databaseStats = stats) }
+    }
+
+    fun exportLocalDatabase(destinationUri: android.net.Uri) {
+        val repo = backupRepository ?: return
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isExportingLocal = true,
+                    localExportSuccess = false,
+                    localOperationMessage = null,
+                    error = null
+                )
+            }
+
+            val result = repo.exportDatabaseToUri(destinationUri)
+            if (result.isSuccess) {
+                val stats = repo.getDatabaseStats()
+                _uiState.update {
+                    it.copy(
+                        isExportingLocal = false,
+                        localExportSuccess = true,
+                        databaseStats = stats,
+                        localOperationMessage = applicationContext.getString(R.string.dcadm_local_export_success)
+                    )
+                }
+            } else {
+                val err = result.exceptionOrNull()?.message ?: applicationContext.getString(R.string.dcadm_error_unknown)
+                _uiState.update {
+                    it.copy(
+                        isExportingLocal = false,
+                        localExportSuccess = false,
+                        error = err,
+                        localOperationMessage = err
+                    )
+                }
+            }
+        }
+    }
+
+    fun importLocalDatabase(sourceUri: android.net.Uri) {
+        val repo = backupRepository ?: return
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    isImportingLocal = true,
+                    localImportSuccess = false,
+                    localOperationMessage = null,
+                    error = null
+                )
+            }
+
+            val result = repo.importDatabaseFromUri(sourceUri)
+            if (result.isSuccess && result.getOrNull() == true) {
+                val stats = repo.getDatabaseStats()
+                _uiState.update {
+                    it.copy(
+                        isImportingLocal = false,
+                        localImportSuccess = true,
+                        databaseStats = stats,
+                        localOperationMessage = applicationContext.getString(R.string.dcadm_local_import_success)
+                    )
+                }
+            } else {
+                val err = result.exceptionOrNull()?.message ?: applicationContext.getString(R.string.dcadm_local_import_failed)
+                _uiState.update {
+                    it.copy(
+                        isImportingLocal = false,
+                        localImportSuccess = false,
+                        error = err,
+                        localOperationMessage = err
+                    )
+                }
+            }
+        }
+    }
+
+    fun runIntegrityCheck() {
+        val repo = backupRepository ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isIntegrityChecking = true, integrityCheckResult = null) }
+            val result = repo.performIntegrityCheck()
+            val stats = repo.getDatabaseStats()
+            if (result.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        isIntegrityChecking = false,
+                        databaseStats = stats,
+                        integrityCheckResult = applicationContext.getString(
+                            R.string.dcadm_advance_integrity_success,
+                            result.getOrNull() ?: "ok"
+                        )
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isIntegrityChecking = false,
+                        databaseStats = stats,
+                        integrityCheckResult = applicationContext.getString(
+                            R.string.dcadm_advance_integrity_error,
+                            result.exceptionOrNull()?.message ?: ""
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    fun createShareableBackup(onReady: (java.io.File?) -> Unit) {
+        val repo = backupRepository ?: run {
+            onReady(null)
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExportingLocal = true) }
+            val result = repo.createLocalBackupZipFile()
+            _uiState.update { it.copy(isExportingLocal = false) }
+            onReady(result.getOrNull())
+        }
+    }
 }
 
 class DcadmViewModelFactory(
@@ -408,7 +546,14 @@ class DcadmViewModelFactory(
             val workManager = WorkManager.getInstance(context)
             
             @Suppress("UNCHECKED_CAST")
-            return DcadmViewModel(context.applicationContext, authManager, userRepository, sessionManager, workManager) as T
+            return DcadmViewModel(
+                context.applicationContext,
+                authManager,
+                userRepository,
+                sessionManager,
+                workManager,
+                repository
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
