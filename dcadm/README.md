@@ -44,7 +44,7 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.Saawry:dcadm:1.2.1")
+    implementation("com.github.Saawry:dcadm:1.2.2")
     
     // Room and Coroutines as used in your host app
 }

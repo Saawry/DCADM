@@ -3,3 +3,5 @@ jdk:
 before_install:
   - chmod +x gradlew
   - ./gradlew --version
+install:
+  - ./gradlew :dcadm:publishToMavenLocal
