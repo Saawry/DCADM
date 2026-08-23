@@ -1,5 +1,8 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.library)
+    id("kotlin-parcelize")
     alias(libs.plugins.ksp)
     id("maven-publish")
 }
@@ -10,6 +13,7 @@ android {
 
     defaultConfig {
         minSdk = 24
+        version = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -29,7 +33,9 @@ android {
     }
 
     kotlin {
-        jvmToolchain(11)
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
     }
 
     packaging {
@@ -52,14 +58,15 @@ android {
     }
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            create<MavenPublication>("release") {
+
+publishing {
+    publications {
+        create<MavenPublication>("release") {
+            groupId = "com.github.Saawry"
+            artifactId = "dcadm"
+            version = "1.2.0"
+            afterEvaluate {
                 from(components["release"])
-                groupId = "com.github.Saawry"
-                artifactId = "dcadm"
-                version = "1.2.0"
             }
         }
     }
