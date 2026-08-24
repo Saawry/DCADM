@@ -118,12 +118,20 @@ class DcadmViewModel(
         if (uid != null) {
             viewModelScope.launch {
                 val profile = userRepository.getUserProfile(uid, applicationContext)
+                val resolvedDriveEmail = profile?.driveEmail?.takeIf { it.isNotBlank() }
+                    ?: userEmail
+                    ?: userRepository.getUserEmail()
+
                 _uiState.update {
                     it.copy(
-                        driveEmail = profile?.driveEmail,
+                        driveEmail = resolvedDriveEmail,
                         userProfile = profile,
                         isLoading = false
                     )
+                }
+
+                if (profile != null && profile.driveEmail.isBlank() && !resolvedDriveEmail.isNullOrBlank()) {
+                    userRepository.updateDriveEmail(uid, resolvedDriveEmail, applicationContext)
                 }
             }
         } else {
@@ -311,32 +319,19 @@ class DcadmViewModel(
         action: PendingAction
     ): Result<Triple<String, String, String>> {
         val userEmail = sessionManager.getUserEmail()
+            ?: userRepository.getUserEmail()
             ?: return Result.failure(Exception(applicationContext.getString(R.string.dcadm_error_no_user_logged_in)))
 
         val uid = userRepository.getUserId()
             ?: return Result.failure(Exception(applicationContext.getString(R.string.dcadm_error_no_user_logged_in)))
 
-        var driveEmail = _uiState.value.driveEmail
-        if (driveEmail.isNullOrBlank()) {
-            DcadmLog.d("DcadmViewModel", "Drive email missing, signing in first...")
-            val signInResult = authManager.signIn(activity)
-            if (signInResult.isFailure) {
-                return Result.failure(
-                    Exception(
-                        signInResult.exceptionOrNull()?.message
-                            ?: applicationContext.getString(R.string.dcadm_error_unknown)
-                    )
-                )
-            }
+        var driveEmail = _uiState.value.driveEmail?.takeIf { it.isNotBlank() }
+            ?: sessionManager.getUserProfile()?.driveEmail?.takeIf { it.isNotBlank() }
+            ?: userEmail
 
-            val firebaseUser = signInResult.getOrThrow()
-            val email = firebaseUser.email
-            if (email.isNullOrBlank()) {
-                return Result.failure(Exception(applicationContext.getString(R.string.dcadm_login_email_retrieval_failed)))
-            }
-            driveEmail = email
-            userRepository.updateDriveEmail(uid, email, applicationContext)
-            _uiState.update { it.copy(driveEmail = email) }
+        if (_uiState.value.driveEmail.isNullOrBlank()) {
+            _uiState.update { it.copy(driveEmail = driveEmail) }
+            userRepository.updateDriveEmail(uid, driveEmail, applicationContext)
         }
 
         // 1. Try using saved token from session manager
@@ -350,13 +345,21 @@ class DcadmViewModel(
                 DcadmLog.d("DcadmViewModel", "Saved token is valid. Proceeding with operation.")
                 return Result.success(Triple(userEmail, driveEmail, savedToken))
             } catch (e: Exception) {
-                DcadmLog.d("DcadmViewModel", "Saved token invalid or expired: ${e.message}. Requesting fresh access.")
+                DcadmLog.d("DcadmViewModel", "Saved token invalid or expired: ${e.message}. Attempting silent renewal.")
             }
         } else {
-            DcadmLog.d("DcadmViewModel", "No saved token found for $driveEmail")
+            DcadmLog.d("DcadmViewModel", "No saved token found for $driveEmail. Attempting silent renewal.")
         }
 
-        // 2. Request fresh access if no saved token or token is invalid
+        // 2. Attempt silent token acquisition first (ZERO user prompt / NO account picker)
+        val silentResult = authManager.silentDriveAccess(applicationContext, driveEmail)
+        if (silentResult.isSuccess) {
+            val token = silentResult.getOrThrow()
+            DcadmLog.d("DcadmViewModel", "Silent token acquired and saved for $driveEmail")
+            return Result.success(Triple(userEmail, driveEmail, token))
+        }
+
+        // 3. If silent auth needs consent resolution, request drive access with Activity
         val authResult = authManager.requestDriveAccess(activity, driveEmail)
         if (authResult.isFailure) {
             val exception = authResult.exceptionOrNull()

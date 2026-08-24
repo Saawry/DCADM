@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.widget.ImageView
 import androidx.annotation.DrawableRes
+import androidx.room.Room
 import androidx.room.RoomDatabase
 
 /**
@@ -188,6 +189,52 @@ object DcadmConfig {
     }
 
     /**
+     * Obtains the host application's RoomDatabase instance safely across all Kotlin/Java architectures.
+     * Tries:
+     * 1. Static methods (e.g. @JvmStatic fun getDatabase(context)) on databaseClass
+     * 2. Kotlin Companion object methods (e.g. Companion.getDatabase(context))
+     * 3. Fallback: Room.databaseBuilder(...)
+     */
+    fun getDatabase(context: Context): RoomDatabase {
+        val dbClass = databaseClass ?: throw IllegalStateException("Database class must be configured via DcadmConfig.init()")
+        val appContext = context.applicationContext
+
+        // 1. Try static methods on dbClass
+        for (methodName in listOf("getDatabase", "getInstance", "create", "get")) {
+            try {
+                val method = dbClass.getMethod(methodName, Context::class.java)
+                val db = method.invoke(null, appContext) as? RoomDatabase
+                if (db != null) return db
+            } catch (ignored: NoSuchMethodException) {
+            } catch (e: Exception) {
+                // Ignore invocation error and continue fallback
+            }
+        }
+
+        // 2. Try Kotlin companion object methods (standard Kotlin companion without @JvmStatic)
+        try {
+            val companionField = dbClass.getField("Companion")
+            val companionObj = companionField.get(null)
+            if (companionObj != null) {
+                val companionClass = companionObj.javaClass
+                for (methodName in listOf("getDatabase", "getInstance", "create", "get")) {
+                    try {
+                        val method = companionClass.getMethod(methodName, Context::class.java)
+                        val db = method.invoke(companionObj, appContext) as? RoomDatabase
+                        if (db != null) return db
+                    } catch (ignored: NoSuchMethodException) {
+                    } catch (e: Exception) {
+                        // Ignore invocation error and continue fallback
+                    }
+                }
+            }
+        } catch (ignored: Exception) {}
+
+        // 3. Fallback: Room.databaseBuilder
+        return Room.databaseBuilder(appContext, dbClass, getDatabaseName()).build()
+    }
+
+    /**
      * Invokes the registered callback when the database has been closed and needs reopening.
      */
     fun onDatabaseReopenNeeded() {
@@ -198,14 +245,11 @@ object DcadmConfig {
      * Closes the host application's database if possible.
      */
     fun closeDatabase(context: Context) {
-        databaseClass?.let {
-            try {
-                val method = it.getMethod("getDatabase", Context::class.java)
-                val db = method.invoke(null, context) as? RoomDatabase
-                db?.close()
-            } catch (e: Exception) {
-                // Fallback or ignore
-            }
+        try {
+            getDatabase(context).close()
+        } catch (e: Exception) {
+            // Fallback or ignore
         }
     }
 }
+

@@ -109,6 +109,7 @@ class RegistrationViewModel(
                 country = state.selectedCountry.name,
                 userType = "free",
                 status = "active",
+                driveEmail = state.email,
                 regDate = regDate,
                 regStatus = "registered",
                 userId = uid,

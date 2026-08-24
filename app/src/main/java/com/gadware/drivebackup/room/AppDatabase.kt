@@ -11,11 +11,12 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
 
     companion object {
-         val DATABASE_NAME="DemoBackupRoomDBTest"
+        const val DATABASE_NAME = "DemoBackupRoomDBTest"
 
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        @JvmStatic
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
@@ -26,6 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        @JvmStatic
         fun resetDatabase() {
             INSTANCE = null
         }

@@ -28,9 +28,7 @@ class BackupWorker(
     private val authManager = GoogleAuthManager(appContext)
     
     private val database: androidx.room.RoomDatabase by lazy {
-        val dbClass = DcadmConfig.getDatabaseClass() ?: throw IllegalStateException("DcadmConfig not initialized")
-        val method = dbClass.getMethod("getDatabase", Context::class.java)
-        method.invoke(null, appContext) as androidx.room.RoomDatabase
+        DcadmConfig.getDatabase(appContext)
     }
 
     private val backupRepository by lazy { BackupRepository(appContext, database, authManager) }

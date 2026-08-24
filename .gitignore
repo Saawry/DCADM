@@ -11,3 +11,5 @@
 local.properties
 *.apk
 *.aar
+google-services.json
+*/google-services.json
