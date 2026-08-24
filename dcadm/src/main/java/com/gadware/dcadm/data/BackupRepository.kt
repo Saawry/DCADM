@@ -376,5 +376,54 @@ class BackupRepository(
             Result.failure(e)
         }
     }
+
+    /**
+     * Checks if the SQLite database has any rows in user tables.
+     * Returns true if database file does not exist or contains 0 user records.
+     */
+    suspend fun isDatabaseEmpty(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val dbName = DcadmConfig.getDatabaseName()
+            val dbFile = context.getDatabasePath(dbName)
+            if (!dbFile.exists() || dbFile.length() == 0L) {
+                return@withContext true
+            }
+
+            val readableDb = database.openHelper.readableDatabase
+            val cursor = readableDb.query(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'room_%' AND name NOT LIKE 'android_%'"
+            )
+            val tableNames = mutableListOf<String>()
+            while (cursor.moveToNext()) {
+                cursor.getString(0)?.let { tableNames.add(it) }
+            }
+            cursor.close()
+
+            if (tableNames.isEmpty()) {
+                return@withContext true
+            }
+
+            var totalRows = 0L
+            for (tableName in tableNames) {
+                try {
+                    val countCursor = readableDb.query("SELECT COUNT(*) FROM `$tableName`")
+                    if (countCursor.moveToFirst()) {
+                        totalRows += countCursor.getLong(0)
+                    }
+                    countCursor.close()
+                    if (totalRows > 0) {
+                        return@withContext false
+                    }
+                } catch (e: Exception) {
+                    DcadmLog.d("BackupRepository", "Could not count table $tableName: ${e.message}")
+                }
+            }
+
+            totalRows == 0L
+        } catch (e: Exception) {
+            DcadmLog.e("BackupRepository", "Error checking if database is empty", e)
+            true
+        }
+    }
 }
 

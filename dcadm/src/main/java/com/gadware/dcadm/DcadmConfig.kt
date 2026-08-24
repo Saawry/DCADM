@@ -170,6 +170,17 @@ object DcadmConfig {
     }
 
     /**
+     * Opens the Profile & Account Management Activity.
+     */
+    fun openProfile(context: Context) {
+        val intent = android.content.Intent(context, com.gadware.dcadm.ui.profile.ProfileActivity::class.java)
+        if (context !is android.app.Activity) {
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+
+    /**
      * Loads the app logo into the provided ImageView.
      * If a custom logo was provided via [appLogoResId], it is used;
      * otherwise, it dynamically loads the host application's launcher icon.

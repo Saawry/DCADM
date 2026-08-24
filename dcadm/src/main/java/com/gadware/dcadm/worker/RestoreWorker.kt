@@ -66,14 +66,20 @@ class RestoreWorker(
 
         return try {
             val result = backupRepository.performRestore(driveEmail, accessToken)
-            if (result.isSuccess && result.getOrNull() == true) {
-                Result.success()
+            if (result.isSuccess) {
+                if (result.getOrNull() == true) {
+                    Result.success()
+                } else {
+                    val noBackupMsg = applicationContext.getString(R.string.dcadm_restore_no_backup_found)
+                    Result.failure(workDataOf("error" to noBackupMsg))
+                }
             } else {
-                Result.failure() // Can be due to no backup found or failure
+                val errorMsg = result.exceptionOrNull()?.message ?: "Restore failed"
+                Result.failure(workDataOf("error" to errorMsg))
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Result.failure()
+            Result.failure(workDataOf("error" to (e.message ?: "Restore failed with exception")))
         }
     }
 

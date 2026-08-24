@@ -66,11 +66,20 @@ class UserRepository {
 
             if (snapshot.exists()) {
                 val profile = snapshot.toObject(UserProfile::class.java)
-                if (profile != null) {
-                    sessionManager.saveUserProfile(profile)
+                val finalProfile = if (profile != null) {
+                    val resolvedPhotoUrl = if (profile.photoUrl.isBlank()) {
+                        auth.currentUser?.photoUrl?.toString() ?: ""
+                    } else {
+                        profile.photoUrl
+                    }
+                    val updated = profile.copy(photoUrl = resolvedPhotoUrl)
+                    sessionManager.saveUserProfile(updated)
                     sessionManager.saveLastProfileSyncDate(currentDate)
+                    updated
+                } else {
+                    null
                 }
-                profile
+                finalProfile
             } else {
                 null
             }
@@ -85,7 +94,16 @@ class UserRepository {
             ?: auth.currentUser?.uid
             ?: return Result.failure(IllegalStateException("Cannot register user without valid Firebase UID"))
 
-        val finalProfile = if (userProfile.userId != uid) userProfile.copy(userId = uid) else userProfile
+        val photoUrl = if (userProfile.photoUrl.isBlank()) {
+            auth.currentUser?.photoUrl?.toString() ?: ""
+        } else {
+            userProfile.photoUrl
+        }
+
+        val finalProfile = userProfile.copy(
+            userId = uid,
+            photoUrl = photoUrl
+        )
 
         return try {
             firestore.collection(com.gadware.dcadm.DcadmConfig.getFirestoreUserCollectionName()).document(uid).set(finalProfile).await()
@@ -160,6 +178,104 @@ class UserRepository {
             if (profile != null) {
                 sessionManager.saveUserProfile(profile.copy(driveEmail = driveEmail))
             }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateLastBackupDate(
+        uid: String = auth.currentUser?.uid ?: "",
+        lastBackupDate: String,
+        context: Context
+    ): Result<Unit> {
+        val targetUid = uid.ifBlank { auth.currentUser?.uid ?: "" }
+        if (targetUid.isBlank()) return Result.failure(IllegalArgumentException("UID cannot be blank"))
+        return try {
+            firestore.collection(com.gadware.dcadm.DcadmConfig.getFirestoreUserCollectionName()).document(targetUid)
+                .update("lastBackupDate", lastBackupDate).await()
+            val sessionManager = SessionManager(context)
+            val profile = sessionManager.getUserProfile()
+            if (profile != null) {
+                sessionManager.saveUserProfile(profile.copy(lastBackupDate = lastBackupDate))
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val sessionManager = SessionManager(context)
+            val profile = sessionManager.getUserProfile()
+            if (profile != null) {
+                sessionManager.saveUserProfile(profile.copy(lastBackupDate = lastBackupDate))
+            }
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateExportStatus(
+        uid: String = auth.currentUser?.uid ?: "",
+        export: Boolean,
+        context: Context
+    ): Result<Unit> {
+        val targetUid = uid.ifBlank { auth.currentUser?.uid ?: "" }
+        if (targetUid.isBlank()) return Result.failure(IllegalArgumentException("UID cannot be blank"))
+        return try {
+            firestore.collection(com.gadware.dcadm.DcadmConfig.getFirestoreUserCollectionName()).document(targetUid)
+                .update("export", export).await()
+            val sessionManager = SessionManager(context)
+            val profile = sessionManager.getUserProfile()
+            if (profile != null) {
+                sessionManager.saveUserProfile(profile.copy(export = export))
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateDeviceToken(
+        uid: String = auth.currentUser?.uid ?: "",
+        deviceToken: String,
+        context: Context
+    ): Result<Unit> {
+        val targetUid = uid.ifBlank { auth.currentUser?.uid ?: "" }
+        if (targetUid.isBlank()) return Result.failure(IllegalArgumentException("UID cannot be blank"))
+        return try {
+            firestore.collection(com.gadware.dcadm.DcadmConfig.getFirestoreUserCollectionName()).document(targetUid)
+                .update("deviceToken", deviceToken).await()
+            val sessionManager = SessionManager(context)
+            val profile = sessionManager.getUserProfile()
+            if (profile != null) {
+                sessionManager.saveUserProfile(profile.copy(deviceToken = deviceToken))
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val sessionManager = SessionManager(context)
+            val profile = sessionManager.getUserProfile()
+            if (profile != null) {
+                sessionManager.saveUserProfile(profile.copy(deviceToken = deviceToken))
+            }
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateUserProfile(userProfile: UserProfile, context: Context): Result<Unit> {
+        val uid = userProfile.userId.takeIf { it.isNotBlank() && it != "pending" }
+            ?: auth.currentUser?.uid
+            ?: return Result.failure(IllegalStateException("Cannot update profile without valid Firebase UID"))
+
+        return try {
+            val updates = mapOf(
+                "name" to userProfile.name,
+                "phoneNumber" to userProfile.phoneNumber,
+                "address" to userProfile.address,
+                "country" to userProfile.country,
+                "photoUrl" to userProfile.photoUrl
+            )
+            firestore.collection(com.gadware.dcadm.DcadmConfig.getFirestoreUserCollectionName()).document(uid)
+                .update(updates).await()
+
+            val sessionManager = SessionManager(context)
+            sessionManager.saveUserProfile(userProfile)
+            com.gadware.dcadm.notification.DcadmNotificationManager.syncTopics(context, userProfile)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

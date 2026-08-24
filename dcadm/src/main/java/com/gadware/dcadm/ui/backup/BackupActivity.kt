@@ -63,12 +63,13 @@ class BackupActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this, factory)[DcadmViewModel::class.java]
 
         val userType = intent.getStringExtra("UserType") ?: ""
-        if (userType == "NewUser") {
-            //get email from session, auth drive,updateDrive mail, save token(from google auth manager),
-            showConfigMailDialog()
-        }else if (userType == "OldUser") {
-            //prompt restore if file exists, if yes, verify and restore//restore may not need verification
-            showRestoreDialog()
+        if (userType == "OldUser") {
+            lifecycleScope.launch {
+                val isEmpty = viewModel.checkIfDatabaseEmpty()
+                if (isEmpty) {
+                    showRestoreDialog()
+                }
+            }
         }
 
         setupLaunchers()
@@ -84,6 +85,7 @@ class BackupActivity : AppCompatActivity() {
     override fun onResume() {
         Log.d(TAG, "BackupActivity: onResume")
         super.onResume()
+        viewModel.loadSettings()
     }
 
     override fun onPause() {
@@ -132,39 +134,6 @@ class BackupActivity : AppCompatActivity() {
         }
     }
 
-    private fun showConfigMailDialog() {
-        Log.d(TAG, "BackupActivity: showConfigMailDialog")
-        if (alert != null) return // prevent multiple dialogs
-
-        val dialogBinding = DcadmDialogConfigureDriveBinding.inflate(layoutInflater)
-
-        alert = AlertDialog.Builder(this)
-            .setTitle(R.string.dcadm_dialog_configure_drive_title)
-            .setView(dialogBinding.root)
-            .setCancelable(true)
-            .create()
-
-        alert?.show()
-
-        dialogBinding.btnConfigure.setOnClickListener {
-            //auth drive, no restore
-            viewModel.authDriveMail(this@BackupActivity)
-            alert?.dismiss()
-            alert=null
-        }
-        dialogBinding.btnCancel.setOnClickListener {
-            alert?.dismiss()
-            alert=null
-        }
-
-        alert?.setOnDismissListener {
-            //viewModel.onConfigDismissed()
-            alert?.dismiss()
-            alert = null
-
-        }
-    }
-
     private fun setupLaunchers() {
         intentLauncher =
             registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
@@ -178,6 +147,14 @@ class BackupActivity : AppCompatActivity() {
     private fun setupUI() {
 
         binding.btnBack.setOnClickListener { finish() }
+
+        binding.cardUserProfile.setOnClickListener {
+            DcadmConfig.openProfile(this)
+        }
+
+        binding.btnEditProfile.setOnClickListener {
+            DcadmConfig.openProfile(this)
+        }
 
         binding.btnBackupDrive.setOnClickListener {
             viewModel.onManualBackupClicked(this)
@@ -216,7 +193,17 @@ class BackupActivity : AppCompatActivity() {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { uiState ->
 
-                    // AUTH
+                    // AUTH NAVIGATION
+                    if (uiState.shouldNavigateToLogin) {
+                        val loginIntent = android.content.Intent(this@BackupActivity, com.gadware.dcadm.ui.login.LoginActivity::class.java).apply {
+                            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        startActivity(loginIntent)
+                        finish()
+                        return@collect
+                    }
+
+                    // AUTH RESOLUTION PROMPT
                     if (uiState.showAuthResolution && uiState.authResolutionIntent != null) {
                         val request = IntentSenderRequest.Builder(
                             uiState.authResolutionIntent.intentSender
@@ -228,6 +215,11 @@ class BackupActivity : AppCompatActivity() {
                     binding.tvLoginEmail.text = uiState.userEmail ?: getString(R.string.dcadm_user_unknown)
                     uiState.userProfile?.let { profile ->
                         binding.tvUserName.text = profile.name
+                        com.gadware.dcadm.utils.ImageLoader.load(
+                            binding.ivUserAvatar,
+                            profile.photoUrl,
+                            R.drawable.outline_person_24
+                        )
                         val userTypeCapitalized = profile.userType.replaceFirstChar { it.uppercase() }
                         val statusCapitalized = profile.status.replaceFirstChar { it.uppercase() }
                         binding.tvUserType.text = getString(
@@ -237,9 +229,8 @@ class BackupActivity : AppCompatActivity() {
                         )
                         binding.tvUserCountry.text = profile.country
 
-                        // Advance options only visible for paid users
-                        val isPaidUser = profile.userType.equals("paid", ignoreCase = true)
-                        binding.cardAdvanceOptions.visibility = if (isPaidUser) View.VISIBLE else View.GONE
+                        // Advance options visible if export is true
+                        binding.cardAdvanceOptions.visibility = if (profile.export) View.VISIBLE else View.GONE
                     } ?: run {
                         binding.cardAdvanceOptions.visibility = View.GONE
                     }
@@ -255,6 +246,12 @@ class BackupActivity : AppCompatActivity() {
                         getString(R.string.dcadm_settings_drive_connected, uiState.driveEmail)
                     } else {
                         uiState.statusText
+                    }
+
+                    // TOAST NOTIFICATIONS
+                    if (!uiState.toastMessage.isNullOrBlank()) {
+                        android.widget.Toast.makeText(this@BackupActivity, uiState.toastMessage, android.widget.Toast.LENGTH_LONG).show()
+                        viewModel.onToastShown()
                     }
 
                     // ERROR

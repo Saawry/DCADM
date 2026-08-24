@@ -154,7 +154,6 @@ class RegistrationActivity : AppCompatActivity() {
         }
 
         val intent = Intent(this, com.gadware.dcadm.ui.backup.BackupActivity::class.java)
-        intent.putExtra("UserType", "NewUser")
         startActivity(intent)
         finish()
     }

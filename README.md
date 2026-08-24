@@ -1,22 +1,30 @@
-# Dcadm - Android Google Drive Backup & Cloud Auth Module
+# Dcadm - Android Google Drive Backup, Push Notifications & Cloud Auth Module
 
-`dcadm` is a lightweight, drop-in Android library that handles **Google Sign-In (Credential Manager + Firebase Auth)**, **Google Drive AppData Backup & Restore (`DRIVE_APPDATA`)**, **Local Database Export & Import**, **Firestore User Profile Management**, and **Periodic Background Sync via WorkManager** for Room SQLite databases.
+`dcadm` is a lightweight, drop-in Android library that handles **Google Sign-In (Credential Manager + Firebase Auth)**, **Google Drive AppData Backup & Restore (`DRIVE_APPDATA`)**, **FCM Push Notifications & Geo/Tier Topic Subscriptions**, **Editable User Profile & Avatar Management**, **Offline Local Database Export & Import**, **Firestore User Profile Synchronization**, and **Periodic Background Sync via WorkManager** for Room SQLite databases.
 
 ---
 
 ## 🌟 Key Features
 
-- 🔐 **Modern Authentication**: Seamless Google Sign-In using Android Credential Manager + Firebase Auth handshake.
-- ☁️ **Google Drive AppData Backup**: Backs up and restores your Room SQLite database to the user's hidden Google Drive `appDataFolder`.
+- 🔐 **Modern Authentication**: Seamless Google Sign-In using Android Credential Manager + Firebase Auth handshake with silent token renewal.
+- 👤 **Editable Profile & Avatar Management (`ProfileActivity`)**:
+  - Auto-retrieves and synchronizes Google/Gmail profile avatars.
+  - Form to update Full Name, Country, Phone Number, Address, and custom Profile Image URL.
+  - Account Sign-Out and permanent Account Deletion with confirmation dialogs.
+- ☁️ **Google Drive AppData Backup**: Backs up and restores your Room SQLite database to the user's hidden Google Drive `appDataFolder` with single-account authorization and live result `Toast` notifications.
+- 🔔 **Push Notifications & Automated Topic Subscriptions**:
+  - Integrated `FirebaseMessagingService` with automatic device token synchronization.
+  - Subscribes users to targeted FCM topics: `all`, `updates`, `paid_users` / `free_users`, and `country_<countryCode>`.
+  - Supports rich titles, multiline messages, custom logos, deep linking, and external URL actions.
 - 📁 **Offline Local Database Export & Import**:
   - Export database backups directly to device storage via Android Storage Access Framework (SAF).
   - Share backup archives directly to other apps (Email, WhatsApp, Drive, etc.) via Android `ACTION_SEND`.
   - Import and restore from `.zip` or raw SQLite `.db` files with safety overwrite confirmations.
-- ⚙️ **Advance Options Activity (`AdvanceOptionsActivity`)**:
+- ⚙️ **Advance Options (`AdvanceOptionsActivity`)**:
   - Dedicated screen for local backup export, import, sharing, database diagnostics, integrity checks (`PRAGMA integrity_check`), and problem reporting.
-- 🔄 **Silent Background Backups**: Daily/Weekly/Monthly automated backups via `WorkManager` with silent OAuth token renewal.
-- 📋 **Firestore User Registration**: Checks for existing users and collects business/profile details for new users in Cloud Firestore.
-- 🎨 **100% Theme & Asset Inheritance**: Inherits your application's Material theme, color palette, and launcher icon automatically.
+  - Visibility conditionally controlled by the user's `profile.export` property.
+- 🔄 **Periodic Background Backups**: Automated backups via `WorkManager` with silent OAuth token renewal and automatic `lastBackupDate` tracking.
+- 🎨 **100% Theme & Asset Inheritance**: Inherits your application's Material 3 theme, color palette, and launcher icon automatically.
 - 🔒 **Encrypted Local Session**: Encrypted SharedPreferences for user profiles, Drive auth tokens, and backup metadata.
 
 ---
@@ -44,7 +52,7 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.Saawry:dcadm:1.2.3")
+    implementation("com.github.Saawry:dcadm:1.3.0")
     
     // Room and Coroutines as used in your host app
 }
@@ -75,9 +83,9 @@ plugins {
 3. **Enable Authentication**:
    - Navigate to **Build > Authentication > Sign-in method**.
    - Enable **Google** sign-in and save.
-4. **Enable Cloud Firestore**:
+4. **Enable Cloud Firestore & Cloud Messaging (FCM)**:
    - Navigate to **Build > Firestore Database** and click **Create database**.
-   - The library manages user registration in the `"users"` collection by default.
+   - Ensure **Cloud Messaging** is enabled.
 5. **Download `google-services.json`**:
    - Navigate to **Project Settings > General > Your apps**.
    - Download `google-services.json` and place it in your app module directory (`app/google-services.json`).
@@ -190,26 +198,38 @@ Make sure your `Application` class is registered in `app/src/main/AndroidManifes
 
 ---
 
-### 3. Launching Screens
+### 3. Launching Screens & Navigation
 
-#### A. Starting the Onboarding / Login Flow
-Launch `LoginActivity` to start Google Sign-In, immediate Drive scope authorization, and Firestore registration check:
+#### A. Starting Onboarding / Login
+Launch `LoginActivity` to start Google Sign-In, immediate Drive authorization, and Firestore profile check:
 
 ```kotlin
 val intent = Intent(this, com.gadware.dcadm.ui.login.LoginActivity::class.java)
 startActivity(intent)
 ```
 
-#### B. Opening the Backup & Restore Settings Screen
-Launch `BackupActivity` to view profile information, trigger manual Google Drive backup/restore, configure automatic routines, or navigate to Advance Options:
+#### B. Opening User Profile Management
+Launch `ProfileActivity` to view/edit user details, avatar URL, sign out, or delete account:
 
 ```kotlin
+// Helper
+DcadmConfig.openProfile(this)
+```
+
+#### C. Opening Backup & Restore Settings
+Launch `BackupActivity` to view last cloud backup timestamp, configure routine backups, or trigger Drive backup/restore:
+
+```kotlin
+// Option 1: Via Helper
+DcadmConfig.openBackup(this)
+
+// Option 2: Via Intent
 val intent = Intent(this, com.gadware.dcadm.ui.backup.BackupActivity::class.java)
 startActivity(intent)
 ```
 
-#### C. Opening Advance Options Directly
-Launch `AdvanceOptionsActivity` directly for local database export, import, diagnostics, and problem reporting:
+#### D. Opening Advance Options
+Launch `AdvanceOptionsActivity` for offline database export, import, diagnostics, and problem reporting:
 
 ```kotlin
 // Option 1: Via Helper
@@ -222,36 +242,29 @@ startActivity(intent)
 
 ---
 
-## 🎨 Customization & Branding
+## 🔔 Push Notifications & Topic Subscriptions
 
-`DcadmConfig.init(...)` provides complete control over your app's branding:
+`DCADM` automatically manages push notification channels and topic subscriptions based on user profile properties:
 
+### Subscribed Topics:
+* `all` — Broadcast to all app users.
+* `updates` — App version updates and announcements.
+* `paid_users` / `free_users` — Dynamic segment based on `userProfile.userType`.
+* `country_<countryCode>` — Geo-targeted notifications based on selected country (e.g. `country_us`, `country_bd`).
+
+### Programmatic Push Notification Testing / Manual Sync:
 ```kotlin
-DcadmConfig.init(
-    dbName = "my_db",
-    hostAppName = "Store Manager",
-    clientId = getString(R.string.default_web_client_id),
-    dbClass = AppDatabase::class.java,
-    homeActivityClassName = MainActivity::class.java.name,
-    termsAndPrivacyUrl = "https://example.com/terms",
-    
-    // Custom App Logo (if omitted or null, dynamically uses app's launcher icon)
-    appLogoResId = R.drawable.my_custom_logo,
-    
-    // Optional Developer / Publisher Ribbon on Login Screen
-    showBranding = true,
-    companyName = "My Studio Inc.",
-    companyUrl = "mystudio.com",
-    companyLogoResId = R.drawable.ic_company_logo,
-    
-    onDatabaseReopenNeeded = {
-        AppDatabase.resetDatabase()
-    }
-)
+// Synchronize device token and refresh topic subscriptions
+DcadmNotificationManager.syncDeviceToken(context) { token ->
+    Log.d("FCM", "Token synced: $token")
+}
 
-// Configure optional support channels
-DcadmConfig.setReportProblemActivityClassName("com.example.myapp.ReportProblemActivity")
-DcadmConfig.setSupportEmail("support@example.com")
+// Display a local notification
+DcadmNotificationManager.showNotification(
+    context = context,
+    title = "Special Offer",
+    message = "Upgrade to Pro for unlimited exports!"
+)
 ```
 
 ---
@@ -266,13 +279,17 @@ val sessionManager = SessionManager(context)
 // Get cached user profile
 val profile: UserProfile? = sessionManager.getUserProfile()
 val userEmail: String? = sessionManager.getUserEmail()
-val lastBackupDate: Long = sessionManager.getLastBackupDate()
+val lastBackupTimestamp: Long = sessionManager.getLastBackupDate()
 val isRegistered: Boolean = sessionManager.getRegStatus()
+
+// Check if advance options are unlocked
+val isExportAllowed: Boolean = profile?.export ?: false
 
 // Silent sign-out
 val authManager = GoogleAuthManager(context)
 lifecycleScope.launch {
     authManager.signOut()
+    sessionManager.clearSession()
 }
 ```
 
@@ -302,7 +319,7 @@ lifecycleScope.launch {
 
 ## 🛡 ProGuard / R8 Rules
 
-If your app enables code shrinking (`isMinifyEnabled = true`), the library packages its own consumer rules automatically. If needed, ensure Google Drive and Room classes are kept:
+If your app enables code shrinking (`isMinifyEnabled = true`), the library packages its own consumer rules automatically. If needed, ensure Google Drive, Room, and DCADM classes are kept:
 
 ```proguard
 # Google Drive API & HTTP

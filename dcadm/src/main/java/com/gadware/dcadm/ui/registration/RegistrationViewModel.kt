@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 
 data class RegistrationUiState(
@@ -101,6 +102,18 @@ class RegistrationViewModel(
                 state.phoneNumber
             )
 
+            val sessionManager = com.gadware.dcadm.data.SessionManager(getApplication())
+            val token = sessionManager.getDeviceToken()
+                ?: try {
+                    com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
+                } catch (e: Exception) {
+                    null
+                }
+
+            if (!token.isNullOrBlank()) {
+                sessionManager.saveDeviceToken(token)
+            }
+
             val userProfile = UserProfile(
                 email = state.email,
                 name = state.name.trim(),
@@ -114,14 +127,18 @@ class RegistrationViewModel(
                 regStatus = "registered",
                 userId = uid,
                 validTill = nextPayDate,
-                deviceToken = null,
-                lastActiveDate = regDate
+                deviceToken = token,
+                lastActiveDate = regDate,
+                lastBackupDate = "",
+                export = false,
+                photoUrl = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.photoUrl?.toString() ?: ""
             )
 
             val result = userRepository.registerUser(userProfile, getApplication())
 
             if (result.isSuccess) {
-                com.gadware.dcadm.data.SessionManager(getApplication()).saveRegStatus()
+                sessionManager.saveRegStatus()
+                com.gadware.dcadm.notification.DcadmNotificationManager.syncTopics(getApplication(), userProfile)
                 _uiState.update {
                     it.copy(
                         isRegistering = false,

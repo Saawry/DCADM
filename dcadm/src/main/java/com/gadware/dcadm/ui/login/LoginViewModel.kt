@@ -112,6 +112,10 @@ class LoginViewModel(
         val profile = userRepository.getUserProfile(uid, applicationContext, forceRefresh = true)
         val isRegistered = profile != null && profile.regStatus == "registered"
 
+        // Sync FCM device token with Firestore and SessionManager & sync topic subscriptions
+        com.gadware.dcadm.notification.DcadmNotificationManager.syncDeviceToken(applicationContext)
+        com.gadware.dcadm.notification.DcadmNotificationManager.syncTopics(applicationContext, profile)
+
         if (isRegistered) {
             _loginState.value = LoginState.SuccessRegistered(email)
         } else {

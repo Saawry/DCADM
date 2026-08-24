@@ -102,6 +102,14 @@ class SessionManager(context: Context) {
         return prefs.getString("drive_token", null)
     }
 
+    fun saveDeviceToken(token: String) {
+        prefs.edit().putString("fcm_device_token", token).apply()
+    }
+
+    fun getDeviceToken(): String? {
+        return prefs.getString("fcm_device_token", null)
+    }
+
     fun saveRegStatus() {
         prefs.edit().putBoolean("is_registered", true).apply()
     }

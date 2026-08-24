@@ -206,4 +206,11 @@ object CountryData {
             ?: countries.find { it.code.equals("BD", ignoreCase = true) }
             ?: countries.first()
     }
+
+    fun findByNameOrCode(query: String?): Country? {
+        if (query.isNullOrBlank()) return null
+        return countries.find {
+            it.name.equals(query, ignoreCase = true) || it.code.equals(query, ignoreCase = true)
+        }
+    }
 }

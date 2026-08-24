@@ -54,7 +54,11 @@
     <string name="dcadm_backup_checking_credentials">Checking credentials...</string>
     <string name="dcadm_backup_enqueued_background">Backup enqueued in background</string>
     <string name="dcadm_restore_enqueued_background">Restore enqueued in background</string>
+    <string name="dcadm_backup_ready">Google Drive connected</string>
     <string name="dcadm_backup_failed_contact_support">Backup failed, contact support</string>
+    <string name="dcadm_backup_failed">Backup failed: %1$s</string>
+    <string name="dcadm_restore_failed">Restore failed: %1$s</string>
+    <string name="dcadm_restore_no_backup_found">No backup file found on Google Drive</string>
 
     <!-- Standalone Backup Screen -->
     <string name="dcadm_backup_success">Backup Successful!</string>
@@ -119,4 +123,31 @@
     <string name="dcadm_worker_restore_title">Data Restore</string>
     <string name="dcadm_worker_restore_channel_name">Restore Operations</string>
     <string name="dcadm_worker_cancel">Cancel</string>
+
+    <!-- Push Notifications -->
+    <string name="dcadm_notification_channel_name">Announcements &amp; Alerts</string>
+    <string name="dcadm_notification_channel_desc">Notifications for app updates, reminders, and cloud backups</string>
+
+    <!-- Profile & Account Actions -->
+    <string name="dcadm_profile_title">Profile</string>
+    <string name="dcadm_profile_header_subtitle">Manage your account information and preferences</string>
+    <string name="dcadm_profile_edit_btn">Edit Profile</string>
+    <string name="dcadm_profile_save_changes">Save Changes</string>
+    <string name="dcadm_profile_saved_success">Profile updated successfully!</string>
+    <string name="dcadm_profile_save_failed">Failed to update profile: %1$s</string>
+    <string name="dcadm_profile_sign_out_title">Sign Out</string>
+    <string name="dcadm_profile_sign_out_msg">Are you sure you want to sign out from your account?</string>
+    <string name="dcadm_profile_sign_out_confirm">Sign Out</string>
+    <string name="dcadm_profile_delete_account_title">Delete Account</string>
+    <string name="dcadm_profile_delete_account_msg">This will permanently delete your user profile and cloud authentication data. This action cannot be undone. Are you sure you want to proceed?</string>
+    <string name="dcadm_profile_delete_account_confirm">Delete Forever</string>
+    <string name="dcadm_profile_delete_success">Account deleted successfully</string>
+    <string name="dcadm_profile_delete_failed">Failed to delete account: %1$s</string>
+    <string name="dcadm_profile_section_account">Account Management</string>
+    <string name="dcadm_profile_field_name">Full Name</string>
+    <string name="dcadm_profile_field_email">Email Address</string>
+    <string name="dcadm_profile_field_phone">Phone Number</string>
+    <string name="dcadm_profile_field_country">Country</string>
+    <string name="dcadm_profile_field_address">Address</string>
+    <string name="dcadm_profile_field_photo_url">Profile Image URL</string>
 </resources>

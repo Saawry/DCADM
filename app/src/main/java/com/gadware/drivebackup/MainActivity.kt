@@ -54,6 +54,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
+        // Profile Management
+        binding.cardUserProfile.setOnClickListener {
+            DcadmConfig.openProfile(this)
+        }
+
+        binding.btnEditProfile.setOnClickListener {
+            DcadmConfig.openProfile(this)
+        }
+
         binding.btnGoogleSignin.setOnClickListener {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
@@ -70,16 +79,52 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Database Management & Sample Operations
         binding.btnInsertData.setOnClickListener {
             val intent = Intent(this, InsertDataActivity::class.java)
             startActivity(intent)
         }
 
+        binding.btnAddSampleData.setOnClickListener {
+            userViewModel.insertSampleUsers(3) {
+                android.widget.Toast.makeText(this, "Added 3 sample users to DB", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        binding.btnClearDb.setOnClickListener {
+            userViewModel.deleteAll {
+                android.widget.Toast.makeText(this, "Cleared all local database records (Empty DB)", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Cloud Backup & Settings
         binding.btnBackup.setOnClickListener {
             val intent = Intent(this, BackupActivity::class.java)
             startActivity(intent)
         }
 
+        // Push Notification & Topics Testing
+        binding.btnTestNotification.setOnClickListener {
+            com.gadware.dcadm.notification.DcadmNotificationManager.showNotification(
+                this,
+                title = "DCADM Push Test",
+                message = "Push notification channel & dispatch are functioning correctly!"
+            )
+            android.widget.Toast.makeText(this, "Dispatched local test notification", android.widget.Toast.LENGTH_SHORT).show()
+        }
+
+        binding.btnSyncPushTopics.setOnClickListener {
+            binding.progressBar.visibility = View.VISIBLE
+            com.gadware.dcadm.notification.DcadmNotificationManager.syncDeviceToken(this) { token ->
+                lifecycleScope.launch {
+                    binding.progressBar.visibility = View.GONE
+                    val msg = if (!token.isNullOrBlank()) "FCM Token & Topics Synced" else "Failed to sync token"
+                    android.widget.Toast.makeText(this@MainActivity, msg, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        // Advance Options
         binding.cardAdvanceOptionsMain.setOnClickListener {
             DcadmConfig.openAdvanceOptions(this)
         }
@@ -120,6 +165,13 @@ class MainActivity : AppCompatActivity() {
             if (profile != null) {
                 binding.tvUserName.text = profile.name.ifBlank { "User" }
                 binding.tvUserEmail.text = profile.email.ifBlank { email }
+                binding.tvUserCountry.text = if (profile.country.isNotBlank()) "Country: ${profile.country}" else "Country: Not set"
+
+                com.gadware.dcadm.utils.ImageLoader.load(
+                    binding.ivUserAvatar,
+                    profile.photoUrl,
+                    com.gadware.dcadm.R.drawable.outline_person_24
+                )
 
                 val isPaid = profile.userType.equals("paid", ignoreCase = true)
                 binding.chipUserType.text = if (isPaid) "PRO / PAID" else "FREE"
@@ -135,12 +187,21 @@ class MainActivity : AppCompatActivity() {
                 binding.chipUserType.chipBackgroundColor = ColorStateList.valueOf(bgColor)
                 binding.chipUserType.setTextColor(textColor)
 
-                // Advance Options are visible if userType is paid
-                binding.cardAdvanceOptionsMain.visibility = if (isPaid) View.VISIBLE else View.GONE
+                // Subscribed Topics info
+                val countryCode = com.gadware.dcadm.data.CountryData.findByNameOrCode(profile.country)?.code
+                    ?: profile.country.take(2).ifBlank { Locale.getDefault().country }
+                val countryTopic = "country_${countryCode.lowercase(Locale.US)}"
+                val tierTopic = if (isPaid) "paid_users" else "free_users"
+                binding.tvNotificationTopics.text = "Topics: all, updates, $tierTopic, $countryTopic"
+
+                // Advance Options are visible if export is true
+                binding.cardAdvanceOptionsMain.visibility = if (profile.export) View.VISIBLE else View.GONE
             } else {
                 binding.tvUserName.text = "Active User"
                 binding.tvUserEmail.text = email
+                binding.tvUserCountry.text = "Country: Not set"
                 binding.chipUserType.text = "FREE"
+                binding.tvNotificationTopics.text = "Topics: all, updates, free_users"
                 binding.cardAdvanceOptionsMain.visibility = View.GONE
             }
 

@@ -14,5 +14,8 @@ data class UserProfile(
     val userId: String = "pending",
     val validTill: Long = 0L,
     val deviceToken: String? = null,
-    val lastActiveDate: Long = 0L
+    val lastActiveDate: Long = 0L,
+    val lastBackupDate: String = "",
+    val export: Boolean = false,
+    val photoUrl: String = ""
 )

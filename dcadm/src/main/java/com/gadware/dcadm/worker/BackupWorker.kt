@@ -68,15 +68,28 @@ class BackupWorker(
         return try {
             val result = backupRepository.performBackup(driveEmail, accessToken)
             if (result.isSuccess) {
-                // Save last backup date
-                sessionManager.saveLastBackupDate(System.currentTimeMillis())
+                val now = System.currentTimeMillis()
+                // Save last backup date timestamp
+                sessionManager.saveLastBackupDate(now)
+                val dateStr = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date(now))
+                val userRepo = com.gadware.dcadm.data.UserRepository()
+                val uid = userRepo.getUserId() ?: sessionManager.getUserProfile()?.userId ?: ""
+                if (uid.isNotBlank() && uid != "pending") {
+                    userRepo.updateLastBackupDate(uid, dateStr, applicationContext)
+                } else {
+                    val profile = sessionManager.getUserProfile()
+                    if (profile != null) {
+                        sessionManager.saveUserProfile(profile.copy(lastBackupDate = dateStr))
+                    }
+                }
                 Result.success()
             } else {
-                Result.failure()
+                val errorMsg = result.exceptionOrNull()?.message ?: "Backup failed"
+                Result.failure(workDataOf("error" to errorMsg))
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Result.failure()
+            Result.failure(workDataOf("error" to (e.message ?: "Backup failed with exception")))
         }
     }
 

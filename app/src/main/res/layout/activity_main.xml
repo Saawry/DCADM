@@ -58,6 +58,9 @@
                 android:id="@+id/cardUserProfile"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
                 app:cardUseCompatPadding="true">
@@ -75,13 +78,14 @@
                         android:orientation="horizontal">
 
                         <com.google.android.material.imageview.ShapeableImageView
+                            android:id="@+id/ivUserAvatar"
                             android:layout_width="48dp"
                             android:layout_height="48dp"
-                            android:background="?attr/colorPrimaryContainer"
-                            android:padding="10dp"
+                            android:scaleType="centerCrop"
                             android:src="@drawable/outline_person_24"
                             app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full"
-                            app:tint="?attr/colorOnPrimaryContainer" />
+                            app:strokeColor="?attr/colorPrimaryContainer"
+                            app:strokeWidth="1dp" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -107,6 +111,15 @@
                                 android:textColor="?attr/colorOnSurfaceVariant"
                                 android:textSize="13sp"
                                 tools:text="user@example.com" />
+
+                            <TextView
+                                android:id="@+id/tvUserCountry"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textColor="?attr/colorOnSurfaceVariant"
+                                android:textSize="12sp"
+                                tools:text="Country: United States" />
                         </LinearLayout>
 
                         <com.google.android.material.chip.Chip
@@ -128,13 +141,26 @@
                         android:orientation="horizontal">
 
                         <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_google_signin"
+                            android:id="@+id/btnEditProfile"
                             style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="6dp"
+                            android:layout_marginEnd="4dp"
                             android:layout_weight="1"
-                            android:text="Switch Account"
+                            android:text="Edit Profile"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp"
+                            app:icon="@drawable/outline_tune_24" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_google_signin"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:text="Switch"
                             android:textAllCaps="false"
                             app:cornerRadius="8dp" />
 
@@ -143,7 +169,7 @@
                             style="@style/Widget.Material3.Button.OutlinedButton"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
+                            android:layout_marginStart="4dp"
                             android:layout_weight="1"
                             android:text="Sign Out"
                             android:textAllCaps="false"
@@ -204,20 +230,53 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Database: DemoBackupRoomDBTest\nInsert, view, or remove SQLite table records to test backup &amp; restore."
+                        android:layout_marginTop="8dp"
+                        android:text="Database: DemoBackupRoomDBTest\nManage SQLite records to test backup, restore on empty DB, and export."
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="13sp" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_insert_data"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="Insert / Manage Data"
-                        android:textAllCaps="false"
-                        app:cornerRadius="8dp"
-                        app:icon="@drawable/outline_add_circle_24" />
+                        android:layout_marginTop="14dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_insert_data"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:text="Manage"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp"
+                            app:icon="@drawable/outline_add_circle_24" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAddSampleData"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:text="+3 Users"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnClearDb"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:text="Empty DB"
+                            android:textAllCaps="false"
+                            android:textColor="?attr/colorError"
+                            app:cornerRadius="8dp"
+                            app:strokeColor="?attr/colorError" />
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -281,7 +340,85 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Advance Options Card (Visible if paid) -->
+            <!-- Push Notifications & FCM Topics Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardUseCompatPadding="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/baseline_sync_24"
+                            app:tint="?attr/colorPrimary" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:text="Push Notifications (FCM)"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvNotificationTopics"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Topics: all, updates, free_users"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="13sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnTestNotification"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:text="Test Notification"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSyncPushTopics"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:text="Sync FCM Token"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Advance Options Card (Visible if export is true) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardAdvanceOptionsMain"
                 android:layout_width="match_parent"
@@ -318,7 +455,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Advance Database Tools (Paid)"
+                            android:text="Advance Database Tools"
                             android:textColor="?attr/colorOnSurface"
                             android:textSize="15sp"
                             android:textStyle="bold" />

@@ -12,6 +12,7 @@ import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.gadware.dcadm.R
 import com.gadware.dcadm.RemoteConfigManager
@@ -52,6 +53,8 @@ data class DcadmUiState(
     val routineConfig: String = "Never",
     val selectedRoutineConfig: String = "Never",
     val showAuthResolution: Boolean = false,
+    val shouldNavigateToLogin: Boolean = false,
+    val toastMessage: String? = null,
 
     // Backup-specific state (preserved from BackupUiState)
     val isBackingUp: Boolean = false,
@@ -92,8 +95,29 @@ class DcadmViewModel(
         loadSettings()
     }
 
-    private fun loadSettings() {
+    fun loadSettings(forceRefresh: Boolean = false) {
         val userEmail = sessionManager.getUserEmail()
+            ?: userRepository.getUserEmail()
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email
+
+        val uid = userRepository.getUserId()
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+
+        if (uid.isNullOrBlank() || userEmail.isNullOrBlank()) {
+            DcadmLog.e("DcadmViewModel", "No logged in user email found in loadSettings. Signing out.")
+            viewModelScope.launch {
+                authManager.signOut()
+                sessionManager.clearSession()
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        shouldNavigateToLogin = true
+                    )
+                }
+            }
+            return
+        }
+
         val lastTimestamp = sessionManager.getLastBackupDate()
         val routineConfig = sessionManager.getRoutineBackupConfig()
 
@@ -114,28 +138,22 @@ class DcadmViewModel(
             )
         }
 
-        val uid = userRepository.getUserId()
-        if (uid != null) {
-            viewModelScope.launch {
-                val profile = userRepository.getUserProfile(uid, applicationContext)
-                val resolvedDriveEmail = profile?.driveEmail?.takeIf { it.isNotBlank() }
-                    ?: userEmail
-                    ?: userRepository.getUserEmail()
+        viewModelScope.launch {
+            val profile = userRepository.getUserProfile(uid, applicationContext, forceRefresh)
+            val resolvedDriveEmail = profile?.driveEmail?.takeIf { it.isNotBlank() }
+                ?: userEmail
 
-                _uiState.update {
-                    it.copy(
-                        driveEmail = resolvedDriveEmail,
-                        userProfile = profile,
-                        isLoading = false
-                    )
-                }
-
-                if (profile != null && profile.driveEmail.isBlank() && !resolvedDriveEmail.isNullOrBlank()) {
-                    userRepository.updateDriveEmail(uid, resolvedDriveEmail, applicationContext)
-                }
+            _uiState.update {
+                it.copy(
+                    driveEmail = resolvedDriveEmail,
+                    userProfile = profile,
+                    isLoading = false
+                )
             }
-        } else {
-            _uiState.update { it.copy(isLoading = false) }
+
+            if (profile != null && profile.driveEmail.isBlank() && !resolvedDriveEmail.isNullOrBlank()) {
+                userRepository.updateDriveEmail(uid, resolvedDriveEmail, applicationContext)
+            }
         }
     }
 
@@ -187,9 +205,8 @@ class DcadmViewModel(
         workManager.enqueueUniquePeriodicWork(workName, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
 
-    fun authDriveMail(activity: Activity){
+    fun authDriveMail(activity: Activity) {
         viewModelScope.launch {
-
             _uiState.update {
                 it.copy(
                     isLoading = true,
@@ -201,10 +218,17 @@ class DcadmViewModel(
             val result = prepareDriveAccess(activity, PendingAction.NONE)
 
             if (result.isFailure) {
-                // ⚠️ If it's auth resolution, UI will handle it automatically
                 val exception = result.exceptionOrNull()
 
-                if (exception !is AuthResolutionRequiredException) {
+                if (exception is AuthResolutionRequiredException) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            showAuthResolution = true,
+                            authResolutionIntent = exception.pendingIntent
+                        )
+                    }
+                } else {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -212,29 +236,33 @@ class DcadmViewModel(
                         )
                     }
                 }
-
                 return@launch
             }
 
-
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    statusText = applicationContext.getString(R.string.dcadm_backup_ready)
+                )
+            }
         }
     }
 
     fun onManualBackupClicked(activity: Activity) {
-        //checkAllStatus like remote config status, user reg status
         viewModelScope.launch {
             val gdbStatus = RemoteConfigManager.getGDBSStatus()
             val uid = userRepository.getUserId() ?: run {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        shouldNavigateToLogin = true,
                         error = applicationContext.getString(R.string.dcadm_error_no_user_logged_in)
                     )
                 }
                 return@launch
             }
             val regStatus = userRepository.isUserRegistered(uid)
-            if (gdbStatus != "not_running" && !regStatus) {//cross check
+            if (gdbStatus != "not_running" && !regStatus) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -245,15 +273,14 @@ class DcadmViewModel(
                 handleDriveAction(activity, PendingAction.BACKUP)
             }
         }
-
     }
 
     fun onManualRestoreClicked(activity: Activity) {
         handleDriveAction(activity, PendingAction.RESTORE)
     }
+
     fun handleDriveAction(activity: Activity, action: PendingAction) {
         viewModelScope.launch {
-
             _uiState.update {
                 it.copy(
                     isLoading = true,
@@ -266,14 +293,23 @@ class DcadmViewModel(
             val result = prepareDriveAccess(activity, action)
 
             if (result.isFailure) {
-                // ⚠️ If it's auth resolution, UI will handle it automatically
                 val exception = result.exceptionOrNull()
 
-                if (exception !is AuthResolutionRequiredException) {
+                if (exception is AuthResolutionRequiredException) {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = exception?.message ?: applicationContext.getString(R.string.dcadm_error_unknown)
+                            showAuthResolution = true,
+                            authResolutionIntent = exception.pendingIntent
+                        )
+                    }
+                } else {
+                    val err = exception?.message ?: applicationContext.getString(R.string.dcadm_error_unknown)
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = err,
+                            toastMessage = err
                         )
                     }
                 }
@@ -287,6 +323,10 @@ class DcadmViewModel(
         }
     }
 
+    fun onToastShown() {
+        _uiState.update { it.copy(toastMessage = null) }
+    }
+
     private fun enqueueWorker(action: PendingAction, driveEmail: String, accessToken: String) {
         val inputData = Data.Builder()
             .putString("DRIVE_EMAIL", driveEmail)
@@ -298,18 +338,108 @@ class DcadmViewModel(
             workManager.enqueue(request)
             _uiState.update {
                 it.copy(
-                    isLoading = false,
+                    isLoading = true,
+                    isBackingUp = true,
                     statusText = applicationContext.getString(R.string.dcadm_backup_enqueued_background)
                 )
+            }
+            viewModelScope.launch {
+                workManager.getWorkInfoByIdFlow(request.id).collect { workInfo ->
+                    if (workInfo == null) return@collect
+                    when (workInfo.state) {
+                        WorkInfo.State.SUCCEEDED -> {
+                            loadSettings(forceRefresh = true)
+                            val successMsg = applicationContext.getString(R.string.dcadm_backup_success)
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isBackingUp = false,
+                                    statusText = successMsg,
+                                    toastMessage = successMsg
+                                )
+                            }
+                        }
+                        WorkInfo.State.FAILED -> {
+                            val errorDetail = workInfo.outputData.getString("error")
+                                ?: workInfo.outputData.getString("reason")
+                                ?: applicationContext.getString(R.string.dcadm_error_unknown)
+                            val failMsg = applicationContext.getString(R.string.dcadm_backup_failed, errorDetail)
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isBackingUp = false,
+                                    error = errorDetail,
+                                    statusText = failMsg,
+                                    toastMessage = failMsg
+                                )
+                            }
+                        }
+                        WorkInfo.State.CANCELLED -> {
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isBackingUp = false,
+                                    toastMessage = "Backup cancelled"
+                                )
+                            }
+                        }
+                        else -> {}
+                    }
+                }
             }
         } else {
             val request = OneTimeWorkRequestBuilder<RestoreWorker>().setInputData(inputData).build()
             workManager.enqueue(request)
             _uiState.update {
                 it.copy(
-                    isLoading = false,
+                    isLoading = true,
+                    isRestoring = true,
                     statusText = applicationContext.getString(R.string.dcadm_restore_enqueued_background)
                 )
+            }
+            viewModelScope.launch {
+                workManager.getWorkInfoByIdFlow(request.id).collect { workInfo ->
+                    if (workInfo == null) return@collect
+                    when (workInfo.state) {
+                        WorkInfo.State.SUCCEEDED -> {
+                            loadSettings(forceRefresh = true)
+                            val successMsg = applicationContext.getString(R.string.dcadm_restore_success)
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isRestoring = false,
+                                    statusText = successMsg,
+                                    toastMessage = successMsg
+                                )
+                            }
+                        }
+                        WorkInfo.State.FAILED -> {
+                            val errorDetail = workInfo.outputData.getString("error")
+                                ?: workInfo.outputData.getString("reason")
+                                ?: applicationContext.getString(R.string.dcadm_error_unknown)
+                            val failMsg = applicationContext.getString(R.string.dcadm_restore_failed, errorDetail)
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isRestoring = false,
+                                    error = errorDetail,
+                                    statusText = failMsg,
+                                    toastMessage = failMsg
+                                )
+                            }
+                        }
+                        WorkInfo.State.CANCELLED -> {
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isRestoring = false,
+                                    toastMessage = "Restore cancelled"
+                                )
+                            }
+                        }
+                        else -> {}
+                    }
+                }
             }
         }
     }
@@ -320,10 +450,24 @@ class DcadmViewModel(
     ): Result<Triple<String, String, String>> {
         val userEmail = sessionManager.getUserEmail()
             ?: userRepository.getUserEmail()
-            ?: return Result.failure(Exception(applicationContext.getString(R.string.dcadm_error_no_user_logged_in)))
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email
 
         val uid = userRepository.getUserId()
-            ?: return Result.failure(Exception(applicationContext.getString(R.string.dcadm_error_no_user_logged_in)))
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+
+        if (userEmail.isNullOrBlank() || uid.isNullOrBlank()) {
+            DcadmLog.e("DcadmViewModel", "Unable to obtain logged in Gmail/UID. Signing out and navigating to login.")
+            authManager.signOut()
+            sessionManager.clearSession()
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    shouldNavigateToLogin = true,
+                    error = applicationContext.getString(R.string.dcadm_error_no_user_logged_in)
+                )
+            }
+            return Result.failure(Exception(applicationContext.getString(R.string.dcadm_error_no_user_logged_in)))
+        }
 
         var driveEmail = _uiState.value.driveEmail?.takeIf { it.isNotBlank() }
             ?: sessionManager.getUserProfile()?.driveEmail?.takeIf { it.isNotBlank() }
@@ -334,14 +478,13 @@ class DcadmViewModel(
             userRepository.updateDriveEmail(uid, driveEmail, applicationContext)
         }
 
-        // 1. Try using saved token from session manager
+        // 1. Try using saved token from session manager and validate it
         val savedToken = sessionManager.getDriveToken()
         if (!savedToken.isNullOrBlank()) {
             DcadmLog.d("DcadmViewModel", "Attempting to use saved token for $driveEmail")
             try {
-                // Validate token by performing a lightweight check
                 val driveHelper = DriveServiceHelper(applicationContext, savedToken)
-                driveHelper.findBackupFile() // This throws exception if token is invalid
+                driveHelper.findBackupFile()
                 DcadmLog.d("DcadmViewModel", "Saved token is valid. Proceeding with operation.")
                 return Result.success(Triple(userEmail, driveEmail, savedToken))
             } catch (e: Exception) {
@@ -351,7 +494,7 @@ class DcadmViewModel(
             DcadmLog.d("DcadmViewModel", "No saved token found for $driveEmail. Attempting silent renewal.")
         }
 
-        // 2. Attempt silent token acquisition first (ZERO user prompt / NO account picker)
+        // 2. Attempt silent token acquisition first (targeted exclusively to logged-in user email)
         val silentResult = authManager.silentDriveAccess(applicationContext, driveEmail)
         if (silentResult.isSuccess) {
             val token = silentResult.getOrThrow()
@@ -359,7 +502,8 @@ class DcadmViewModel(
             return Result.success(Triple(userEmail, driveEmail, token))
         }
 
-        // 3. If silent auth needs consent resolution, request drive access with Activity
+        // 3. If silent auth cannot resolve automatically, request drive access with Activity targeting strictly driveEmail
+        DcadmLog.d("DcadmViewModel", "Silent auth not possible, prompting user to re-authorize for logged-in email: $driveEmail")
         val authResult = authManager.requestDriveAccess(activity, driveEmail)
         if (authResult.isFailure) {
             val exception = authResult.exceptionOrNull()
@@ -372,12 +516,12 @@ class DcadmViewModel(
         return Result.success(Triple(userEmail, driveEmail, token))
     }
 
-
-
     // --- Resolution handling ---
     fun onAuthResolutionResult(resultOk: Boolean, activity: Activity) {
         val action = _uiState.value.pendingAction
         val driveEmail = _uiState.value.driveEmail
+            ?: sessionManager.getUserEmail()
+            ?: userRepository.getUserEmail()
 
         _uiState.update {
             it.copy(
@@ -387,22 +531,44 @@ class DcadmViewModel(
             )
         }
 
-        if (resultOk && action != null && driveEmail != null) {
+        if (resultOk && driveEmail != null) {
             viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true) }
                 val authResult = authManager.requestDriveAccess(activity, driveEmail)
 
                 if (authResult.isSuccess) {
                     val token = authResult.getOrThrow()
-                    enqueueWorker(action, driveEmail, token)
+                    if (action != null && action != PendingAction.NONE) {
+                        enqueueWorker(action, driveEmail, token)
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                driveEmail = driveEmail,
+                                statusText = applicationContext.getString(R.string.dcadm_backup_ready)
+                            )
+                        }
+                    }
+                } else {
+                    val err = authResult.exceptionOrNull()?.message ?: applicationContext.getString(R.string.dcadm_error_unknown)
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = err,
+                            toastMessage = err
+                        )
+                    }
                 }
             }
         } else {
+            val permDeniedMsg = applicationContext.getString(R.string.dcadm_error_permission_denied)
             _uiState.update {
                 it.copy(
                     isLoading = false,
                     isBackingUp = false,
                     isRestoring = false,
-                    error = applicationContext.getString(R.string.dcadm_error_permission_denied)
+                    error = permDeniedMsg,
+                    toastMessage = permDeniedMsg
                 )
             }
         }
@@ -533,6 +699,10 @@ class DcadmViewModel(
             _uiState.update { it.copy(isExportingLocal = false) }
             onReady(result.getOrNull())
         }
+    }
+
+    suspend fun checkIfDatabaseEmpty(): Boolean {
+        return backupRepository?.isDatabaseEmpty() ?: true
     }
 }
 

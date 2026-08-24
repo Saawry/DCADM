@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         minSdk = 24
-        version = "1.2.3"
+        version = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -64,7 +64,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "com.github.Saawry"
             artifactId = "dcadm"
-            version = "1.2.3"
+            version = "1.3.0"
             afterEvaluate {
                 from(components["release"])
             }
