@@ -52,7 +52,7 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.Saawry:dcadm:1.3.0")
+    implementation("com.github.Saawry:dcadm:1.3.1")
     
     // Room and Coroutines as used in your host app
 }
