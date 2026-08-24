@@ -34,9 +34,7 @@ class LoginActivity : AppCompatActivity() {
         binding = DcadmActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val factory = LoginViewModelFactory(this, DcadmConfig.getDatabaseClass()?.let {
-            androidx.room.Room.databaseBuilder(applicationContext, it, DcadmConfig.getDatabaseName()).build()
-        } ?: throw IllegalStateException("Database class must be configured via DcadmConfig.init()"))
+        val factory = LoginViewModelFactory(this, DcadmConfig.getDatabase(this))
         viewModel = ViewModelProvider(this, factory)[LoginViewModel::class.java]
 
         setupLauncher()

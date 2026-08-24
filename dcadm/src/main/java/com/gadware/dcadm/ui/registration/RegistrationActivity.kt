@@ -17,6 +17,9 @@ import com.gadware.dcadm.databinding.DcadmActivityRegistrationBinding
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+
 class RegistrationActivity : AppCompatActivity() {
     private val TAG = "Dcadm_Trace"
 
@@ -29,6 +32,19 @@ class RegistrationActivity : AppCompatActivity() {
 
         binding = DcadmActivityRegistrationBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.main) { view, insets ->
+            val imeInsets = insets.getInsets(
+                WindowInsetsCompat.Type.ime() or WindowInsetsCompat.Type.systemBars()
+            )
+            view.setPadding(
+                view.paddingLeft,
+                view.paddingTop,
+                view.paddingRight,
+                imeInsets.bottom
+            )
+            insets
+        }
 
         val email = intent.getStringExtra("email") ?: ""
 

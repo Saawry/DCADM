@@ -10,10 +10,12 @@
         <activity
             android:name=".ui.login.LoginActivity"
             android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.DcadmLibrary" />
         <activity
             android:name=".ui.registration.RegistrationActivity"
             android:exported="false"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.DcadmLibrary" />
         <activity
             android:name=".ui.backup.BackupActivity"

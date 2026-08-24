@@ -53,11 +53,7 @@ class AdvanceOptionsActivity : AppCompatActivity() {
         binding = DcadmActivityAdvanceOptionsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val dbClass = DcadmConfig.getDatabaseClass()
-            ?: throw IllegalStateException("DcadmConfig not initialized with database class")
-        val method = dbClass.getMethod("getDatabase", android.content.Context::class.java)
-        val database = method.invoke(null, this) as androidx.room.RoomDatabase
-
+        val database = DcadmConfig.getDatabase(this)
         val factory = DcadmViewModelFactory(this, database)
         viewModel = ViewModelProvider(this, factory)[DcadmViewModel::class.java]
 
