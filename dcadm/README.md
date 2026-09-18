@@ -15,6 +15,10 @@
 - ⚙️ **Advance Options Activity (`AdvanceOptionsActivity`)**:
   - Dedicated screen for local backup export, import, sharing, database diagnostics, integrity checks (`PRAGMA integrity_check`), and problem reporting.
 - 🔄 **Silent Background Backups**: Daily/Weekly/Monthly automated backups via `WorkManager` with silent OAuth token renewal.
+- 🐛 **Built-in Problem Reporting (`ReportProblemActivity`)**: Complete user bug reporting workflow saving to Cloud Firestore (`/Reports`) with user profile pre-filling, IP geolocation, pending report detection, and Material 3 UI.
+- 💥 **Firebase Crashlytics Integration**: Automatic non-fatal error reporting, breadcrumb logging, user ID attribution, and diagnostic custom keys.
+- ⭐ **Google Play In-App Review**: Frictionless in-app review prompts (`review-ktx:2.0.2`), smart milestone/quota throttling, and `FakeReviewManager` test mode.
+- 📲 **Google Play In-App Update**: Lifecycle-aware in-app updates (`app-update-ktx:2.1.0`) with zero `onResume` boilerplate, `FLEXIBLE` (with restart Snackbar) and `IMMEDIATE` modes, and `FakeAppUpdateManager` test mode.
 - 📋 **Firestore User Registration**: Checks for existing users and collects business/profile details for new users in Cloud Firestore.
 - 🎨 **100% Theme & Asset Inheritance**: Inherits your application's Material theme, color palette, and launcher icon automatically.
 - 🔒 **Encrypted Local Session**: Encrypted SharedPreferences for user profiles, Drive auth tokens, and backup metadata.
@@ -44,7 +48,7 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.Saawry:dcadm:1.2.3")
+    implementation("com.github.Saawry:dcadm:1.4.0")
     
     // Room and Coroutines as used in your host app
 }
@@ -252,6 +256,112 @@ DcadmConfig.init(
 // Configure optional support channels
 DcadmConfig.setReportProblemActivityClassName("com.example.myapp.ReportProblemActivity")
 DcadmConfig.setSupportEmail("support@example.com")
+```
+
+---
+
+## 🚀 What's New in v1.4.0 (Implementation Guide)
+
+Version `1.4.0` introduces four major capabilities designed for effortless host app implementation:
+
+### 1. Google Play In-App Review
+Prompt users for Google Play store reviews with zero friction:
+
+```kotlin
+// Option A: Direct one-line trigger (Google manages quota internally)
+DcadmConfig.launchInAppReview(this)
+
+// Option B: Direct trigger with completion callback
+DcadmConfig.launchInAppReview(this) { isSuccessful ->
+    // Flow completed (reviewed, dismissed, or quota applied)
+}
+
+// Option C: Smart milestone trigger (checks install age, cooldown, and action milestones)
+DcadmConfig.checkAndLaunchInAppReview(
+    activity = this,
+    minDaysSinceInstall = 2,     // Must be installed at least 2 days
+    minDaysBetweenPrompts = 14,   // Cooldown period between prompts
+    minActions = 3                // Requires at least 3 milestone actions
+)
+
+// Count user milestone actions (e.g. after database backup or completing a task):
+DcadmConfig.recordReviewMilestoneAction(context)
+
+// Fallback: Open Google Play Store listing page directly (for "Rate Us" buttons in settings):
+DcadmConfig.openPlayStore(context)
+
+// Test mode for debug builds & emulators (uses FakeReviewManager):
+DcadmConfig.setInAppReviewTestMode(true)
+```
+
+### 2. Google Play In-App Update
+Keep users on the latest version of your app with automated lifecycle handling:
+
+```kotlin
+// Option A: Standard Flexible Update (One-liner)
+// Downloads in background and automatically displays Material Snackbar with "Restart" when ready:
+DcadmConfig.checkForUpdates(this)
+
+// Option B: Immediate / Mandatory Update (Full-screen blocking UI)
+DcadmConfig.checkForUpdates(
+    activity = this,
+    mode = DcadmUpdateMode.IMMEDIATE
+)
+
+// Option C: Flexible Update with custom downloaded UI callback
+DcadmConfig.checkForUpdates(
+    activity = this,
+    mode = DcadmUpdateMode.FLEXIBLE,
+    onUpdateDownloaded = {
+        // Show your own custom banner/dialog
+        showCustomRestartDialog {
+            DcadmConfig.completeUpdate()
+        }
+    }
+)
+
+// Test mode for debug builds & emulators (uses FakeAppUpdateManager):
+DcadmConfig.setInAppUpdateTestMode(enabled = true, isUpdateAvailable = true)
+```
+
+### 3. Report Problem Feature
+Allow users to submit bug reports and issues directly to your Cloud Firestore:
+
+```kotlin
+// Launch the built-in Material 3 Report Problem Activity:
+DcadmConfig.openReportProblem(this)
+
+// Optional: Customize feature categories shown in the dropdown
+DcadmConfig.setReportProblemCategories(listOf(
+    "Drive backup",
+    "Restore",
+    "Orders",
+    "Billing",
+    "Other"
+))
+
+// Optional: Customize Firestore collection name (defaults to "Reports")
+DcadmConfig.setFirestoreReportsCollectionName("Reports")
+```
+*Note: Reports are saved to Cloud Firestore `/Reports` with schema: `appName`, `country`, `email`, `featureName`, `message`, `name`, `phone`, `status` ("Pending"), `subject`, and `timestamp`.*
+
+### 4. Firebase Crashlytics Integration
+Enhance error tracking with automated non-fatal reporting, breadcrumbs, and diagnostic keys:
+
+```kotlin
+// Apply the Crashlytics plugin in your host app's build.gradle.kts:
+plugins {
+    id("com.google.firebase.crashlytics")
+}
+
+// Record custom non-fatal exceptions:
+DcadmConfig.recordCrashlyticsException(throwable)
+
+// Log custom breadcrumbs:
+DcadmConfig.logCrashlyticsBreadcrumb("User started checkout")
+
+// Toggle Crashlytics collection dynamically if needed:
+DcadmConfig.setCrashlyticsEnabled(true)
 ```
 
 ---

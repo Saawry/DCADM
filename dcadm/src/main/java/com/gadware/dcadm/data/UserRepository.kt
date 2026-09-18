@@ -75,6 +75,8 @@ class UserRepository {
                     val updated = profile.copy(photoUrl = resolvedPhotoUrl)
                     sessionManager.saveUserProfile(updated)
                     sessionManager.saveLastProfileSyncDate(currentDate)
+                    com.gadware.dcadm.DcadmConfig.setCrashlyticsUserId(uid)
+                    com.gadware.dcadm.DcadmConfig.setCrashlyticsCustomKey("user_type", updated.userType)
                     updated
                 } else {
                     null

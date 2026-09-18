@@ -158,6 +158,14 @@ class AdvanceOptionsActivity : AppCompatActivity() {
             }
         }
 
+        // Launch DCADM built-in ReportProblemActivity
+        try {
+            DcadmConfig.openReportProblem(this)
+            return
+        } catch (e: Exception) {
+            DcadmLog.e("AdvanceOptions", "Failed to launch built-in ReportProblemActivity: ${e.message}")
+        }
+
         // Try standard host report activity convention
         try {
             val intent = Intent()

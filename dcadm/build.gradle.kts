@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         minSdk = 24
-        version = "1.3.1"
+        version = "1.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -64,7 +64,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "com.github.Saawry"
             artifactId = "dcadm"
-            version = "1.3.1"
+            version = "1.4.0"
             afterEvaluate {
                 from(components["release"])
             }
@@ -108,9 +108,16 @@ dependencies {
     implementation(libs.firebase.config)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
 
     ksp(libs.room.compiler)
 
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
+
+    // Google Play In-App Review & In-App Update
+    implementation(libs.play.review)
+    implementation(libs.play.review.ktx)
+    implementation(libs.play.app.update)
+    implementation(libs.play.app.update.ktx)
 }

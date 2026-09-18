@@ -32,6 +32,16 @@ object DcadmConfig {
     private var termsAndPrivacyUrl: String? = null
     private var appLogoResId: Int? = null
     private var firestoreUserCollectionName: String = "users"
+    private var firestoreReportsCollectionName: String = "Reports"
+    private var reportProblemCategories: List<String> = listOf(
+        "Drive backup",
+        "Restore",
+        "Authentication",
+        "Account & Profile",
+        "App Performance",
+        "Other"
+    )
+    private var crashlyticsEnabled: Boolean = true
 
     // Optional Publisher / Organization Branding for Login Footer
     private var showBrandingFooter: Boolean = false
@@ -86,6 +96,15 @@ object DcadmConfig {
         this.companyUrl = companyUrl
         this.companyLogoResId = companyLogoResId
         this.databaseLifecycleCallback = onDatabaseReopenNeeded
+
+        try {
+            if (crashlyticsEnabled) {
+                val crashlytics = com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance()
+                crashlytics.setCustomKey("host_app_name", hostAppName)
+                crashlytics.setCustomKey("dcadm_db_name", dbName)
+                crashlytics.setCustomKey("dcadm_version", "1.4.0")
+            }
+        } catch (ignored: Exception) {}
     }
 
     /**
@@ -169,6 +188,27 @@ object DcadmConfig {
         context.startActivity(intent)
     }
 
+    fun getFirestoreReportsCollectionName() = firestoreReportsCollectionName
+    fun setFirestoreReportsCollectionName(collectionName: String) {
+        this.firestoreReportsCollectionName = collectionName
+    }
+
+    fun getReportProblemCategories() = reportProblemCategories
+    fun setReportProblemCategories(categories: List<String>) {
+        this.reportProblemCategories = categories
+    }
+
+    /**
+     * Opens the Report Problem Activity.
+     */
+    fun openReportProblem(context: Context) {
+        val intent = android.content.Intent(context, com.gadware.dcadm.ui.report.ReportProblemActivity::class.java)
+        if (context !is android.app.Activity) {
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+
     /**
      * Opens the Profile & Account Management Activity.
      */
@@ -178,6 +218,131 @@ object DcadmConfig {
             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)
+    }
+
+    // Firebase Crashlytics Configuration & Diagnostics
+    fun isCrashlyticsEnabled(): Boolean = crashlyticsEnabled
+
+    fun setCrashlyticsEnabled(enabled: Boolean) {
+        this.crashlyticsEnabled = enabled
+        try {
+            com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(enabled)
+        } catch (ignored: Exception) {}
+    }
+
+    fun recordCrashlyticsException(throwable: Throwable) {
+        try {
+            if (crashlyticsEnabled) {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().recordException(throwable)
+            }
+        } catch (ignored: Exception) {}
+    }
+
+    fun logCrashlyticsBreadcrumb(message: String) {
+        try {
+            if (crashlyticsEnabled) {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().log(message)
+            }
+        } catch (ignored: Exception) {}
+    }
+
+    fun setCrashlyticsUserId(userId: String) {
+        try {
+            if (crashlyticsEnabled) {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().setUserId(userId)
+            }
+        } catch (ignored: Exception) {}
+    }
+
+    fun setCrashlyticsCustomKey(key: String, value: String) {
+        try {
+            if (crashlyticsEnabled) {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().setCustomKey(key, value)
+            }
+        } catch (ignored: Exception) {}
+    }
+
+    // Google Play In-App Review Helpers
+    /**
+     * Directly launches the Google Play In-App Review flow.
+     */
+    fun launchInAppReview(
+        activity: android.app.Activity,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        com.gadware.dcadm.review.DcadmReviewManager.launchReview(activity, onComplete)
+    }
+
+    /**
+     * Smart In-App Review trigger checking install age, prompt intervals, and user milestones.
+     */
+    fun checkAndLaunchInAppReview(
+        activity: android.app.Activity,
+        minDaysSinceInstall: Int = 2,
+        minDaysBetweenPrompts: Int = 14,
+        minActions: Int = 3,
+        onComplete: ((Boolean) -> Unit)? = null
+    ): Boolean {
+        return com.gadware.dcadm.review.DcadmReviewManager.checkAndLaunchReview(
+            activity,
+            minDaysSinceInstall,
+            minDaysBetweenPrompts,
+            minActions,
+            onComplete
+        )
+    }
+
+    /**
+     * Increments the milestone interaction counter for smart in-app review triggering.
+     */
+    fun recordReviewMilestoneAction(context: Context) {
+        com.gadware.dcadm.review.DcadmReviewManager.recordAction(context)
+    }
+
+    /**
+     * Opens the Google Play Store listing page directly.
+     */
+    fun openPlayStore(context: Context, customPackageName: String? = null) {
+        com.gadware.dcadm.review.DcadmReviewManager.openPlayStore(context, customPackageName)
+    }
+
+    /**
+     * Enables or disables test mode using FakeReviewManager for testing on debug builds and emulators.
+     */
+    fun setInAppReviewTestMode(enabled: Boolean) {
+        com.gadware.dcadm.review.DcadmReviewManager.setTestMode(enabled)
+    }
+
+    // Google Play In-App Update Helpers
+    /**
+     * Checks for Google Play in-app updates and initiates the update flow if available.
+     * Automatically registers lifecycle hooks to handle onResume state and restart prompts.
+     *
+     * @param activity Foreground activity to host the update flow.
+     * @param mode Update mode: [com.gadware.dcadm.update.DcadmUpdateMode.FLEXIBLE] (default) or [com.gadware.dcadm.update.DcadmUpdateMode.IMMEDIATE].
+     * @param onUpdateDownloaded Optional custom callback when a flexible update finishes downloading.
+     *                           If null, a default Material Snackbar with "Restart" action will be shown.
+     */
+    fun checkForUpdates(
+        activity: android.app.Activity,
+        mode: com.gadware.dcadm.update.DcadmUpdateMode = com.gadware.dcadm.update.DcadmUpdateMode.FLEXIBLE,
+        onUpdateDownloaded: (() -> Unit)? = null
+    ) {
+        com.gadware.dcadm.update.DcadmUpdateManager.checkForUpdates(activity, mode, onUpdateDownloaded)
+    }
+
+    /**
+     * Completes a flexible in-app update by restarting the application.
+     */
+    fun completeUpdate() {
+        com.gadware.dcadm.update.DcadmUpdateManager.completeUpdate()
+    }
+
+    /**
+     * Enables or disables test mode using FakeAppUpdateManager for testing on debug builds and emulators.
+     */
+    fun setInAppUpdateTestMode(enabled: Boolean, isUpdateAvailable: Boolean = true, isImmediate: Boolean = false) {
+        com.gadware.dcadm.update.DcadmUpdateManager.setTestMode(enabled, isUpdateAvailable, isImmediate)
     }
 
     /**

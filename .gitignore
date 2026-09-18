@@ -13,3 +13,4 @@ local.properties
 *.aar
 google-services.json
 */google-services.json
+.vscode/

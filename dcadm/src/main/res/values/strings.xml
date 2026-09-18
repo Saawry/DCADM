@@ -150,4 +150,33 @@
     <string name="dcadm_profile_field_country">Country</string>
     <string name="dcadm_profile_field_address">Address</string>
     <string name="dcadm_profile_field_photo_url">Profile Image URL</string>
+
+    <!-- Report Problem -->
+    <string name="dcadm_report_title">Report Problem</string>
+    <string name="dcadm_report_subtitle">Submit an issue directly to our technical support team</string>
+    <string name="dcadm_report_hint_name">Name</string>
+    <string name="dcadm_report_hint_phone">Phone</string>
+    <string name="dcadm_report_hint_email">Email</string>
+    <string name="dcadm_report_hint_feature">Feature</string>
+    <string name="dcadm_report_hint_message">Message</string>
+    <string name="dcadm_report_hint_message_placeholder">Please describe what happened, steps to reproduce, or any error messages...</string>
+    <string name="dcadm_report_btn_submit">Submit</string>
+    <string name="dcadm_report_submitting">Submitting report...</string>
+    <string name="dcadm_report_pending_banner_title">You have a pending report</string>
+    <string name="dcadm_report_pending_banner_desc">Submitted on %1$s • Status: %2$s</string>
+    <string name="dcadm_report_already_pending">You already have a pending report.</string>
+    <string name="dcadm_report_pending_cannot_submit">You already have an open report under review. Duplicate submissions are disabled.</string>
+    <string name="dcadm_report_success">Report submitted successfully</string>
+    <string name="dcadm_report_failed">Submission failed: %1$s</string>
+    <string name="dcadm_report_err_name">Please enter your name</string>
+    <string name="dcadm_report_err_phone">Please enter your phone number</string>
+    <string name="dcadm_report_err_email">Valid email address is required</string>
+    <string name="dcadm_report_err_feature">Please select a feature</string>
+    <string name="dcadm_report_err_message">Please provide details about the problem</string>
+    <string name="dcadm_report_country_label">Detected Country: %1$s</string>
+
+    <!-- In-App Update -->
+    <string name="dcadm_update_downloaded">An update has been downloaded.</string>
+    <string name="dcadm_update_restart">Restart</string>
+    <string name="dcadm_update_failed">Update failed: %1$s</string>
 </resources>

@@ -124,9 +124,39 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Crashlytics Diagnostic Test
+        binding.btnTestCrashlytics.setOnClickListener {
+            DcadmConfig.logCrashlyticsBreadcrumb("Manual test error triggered from MainActivity")
+            DcadmConfig.recordCrashlyticsException(RuntimeException("DCADM Test Non-Fatal Exception: Firebase Crashlytics is active"))
+            android.widget.Toast.makeText(this, "Recorded non-fatal test error to Crashlytics", android.widget.Toast.LENGTH_SHORT).show()
+        }
+
+        // In-App Review Test
+        binding.btnTestInAppReview.setOnClickListener {
+            DcadmConfig.setInAppReviewTestMode(true)
+            DcadmConfig.launchInAppReview(this) { isSuccessful ->
+                val msg = if (isSuccessful) "In-App Review flow completed successfully" else "In-App Review flow failed or unavailable"
+                android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // In-App Update Test
+        binding.btnTestInAppUpdate.setOnClickListener {
+            DcadmConfig.setInAppUpdateTestMode(enabled = true, isUpdateAvailable = true, isImmediate = false)
+            DcadmConfig.checkForUpdates(
+                activity = this,
+                mode = com.gadware.dcadm.update.DcadmUpdateMode.FLEXIBLE
+            )
+        }
+
         // Advance Options
         binding.cardAdvanceOptionsMain.setOnClickListener {
             DcadmConfig.openAdvanceOptions(this)
+        }
+
+        // Report Problem
+        binding.cardReportProblemMain.setOnClickListener {
+            DcadmConfig.openReportProblem(this)
         }
     }
 

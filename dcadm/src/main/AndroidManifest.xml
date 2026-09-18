@@ -30,6 +30,11 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.DcadmLibrary" />
+        <activity
+            android:name=".ui.report.ReportProblemActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.DcadmLibrary" />
 
         <service
             android:name=".notification.DcadmFirebaseMessagingService"

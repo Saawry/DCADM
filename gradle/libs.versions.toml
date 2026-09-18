@@ -14,6 +14,7 @@ cardview = "1.0.0"
 securityCrypto = "1.1.0-alpha06"
 credentials = "1.5.0"
 firebaseBom = "33.10.0"
+crashlyticsPlugin = "3.0.3"
 googleid = "1.1.1"
 playServicesAuth = "21.4.0"
 googleApiClientAndroid = "2.6.0"
@@ -25,6 +26,8 @@ androidxLifecycle = "2.8.7"
 room = "2.7.2"
 coroutines = "1.10.2"
 workManager = "2.10.3"
+playReview = "2.0.2"
+playAppUpdate = "2.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -50,12 +53,19 @@ google-api-client-android = { module = "com.google.api-client:google-api-client-
 google-api-services-drive = { module = "com.google.apis:google-api-services-drive", version.ref = "googleApiServicesDrive" }
 google-http-client-gson = { module = "com.google.http-client:google-http-client-gson", version.ref = "googleHttpClientGson" }
 
+# Google Play In-App Review & In-App Update
+play-review = { module = "com.google.android.play:review", version.ref = "playReview" }
+play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "playReview" }
+play-app-update = { module = "com.google.android.play:app-update", version.ref = "playAppUpdate" }
+play-app-update-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "playAppUpdate" }
+
 # Firebase
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-config = { module = "com.google.firebase:firebase-config" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 
 # Room
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
@@ -84,3 +94,4 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "crashlyticsPlugin" }
