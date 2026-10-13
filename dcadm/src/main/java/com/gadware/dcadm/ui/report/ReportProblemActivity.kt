@@ -100,8 +100,6 @@ class ReportProblemActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    // 1. Detected Country
-                    binding.tvCountryBadge.text = getString(R.string.dcadm_report_country_label, state.country)
 
                     // 2. Pre-fill Form Fields
                     if (!binding.etEmail.hasFocus() && binding.etEmail.text.toString() != state.email) {

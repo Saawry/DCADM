@@ -172,18 +172,6 @@
 
                     </LinearLayout>
 
-                    <!-- Country Badge -->
-                    <TextView
-                        android:id="@+id/tvCountryBadge"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:background="@drawable/bg_spinner"
-                        android:paddingHorizontal="10dp"
-                        android:paddingVertical="4dp"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textSize="12sp"
-                        tools:text="Detected Country: Bangladesh" />
 
                     <!-- Name Field -->
                     <com.google.android.material.textfield.TextInputLayout

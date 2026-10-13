@@ -56,7 +56,7 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.Saawry:dcadm:1.4.0")
+    implementation("com.github.Saawry:dcadm:1.5.0")
     
     // Room and Coroutines as used in your host app
 }
@@ -269,6 +269,54 @@ DcadmNotificationManager.showNotification(
     title = "Special Offer",
     message = "Upgrade to Pro for unlimited exports!"
 )
+```
+
+---
+
+## 🚀 What's New in v1.5.0 (Implementation & Migration Guide)
+
+Version `1.5.0` refines database operations, streamlines backup activity workflows, and cleans up the problem reporting user experience:
+
+### 1. Individual Export & Import Database Cards in `BackupActivity`
+- **Standalone Cards**: Database Export and Database Import are now independent, individual cards directly present in the main `BackupActivity` (the primary settings & backup screen).
+- **Visibility Logic**: Both options appear strictly based on the user's profile permission `profile.export == true`. If `export == false` or the profile is unauthenticated, both cards remain completely hidden (`View.GONE`).
+- **Registration Default**: When a user registers through `RegistrationActivity`, the `export` permission defaults to `false`. It can be granted remotely via Cloud Firestore or through `UserRepository.updateExportStatus(...)`.
+- **Integrated Operations**:
+  - **Export Database**: "Export to File" (via Storage Access Framework `.zip`) and "Share Backup File" (share via `ACTION_SEND` to Gmail, WhatsApp, Drive, etc.).
+  - **Import Database**: "Import from File" with safety confirmation dialog before restoring/overwriting existing local SQLite data.
+  - **Feedback**: Integrated linear progress indicators and immediate result `Toast` notifications.
+
+### 2. Report Problem UI Cleanup
+- Removed the redundant detected country badge from `ReportProblemActivity`, resulting in a cleaner and more professional form layout.
+- Country detection continues to work behind the scenes and is automatically attached to the submitted Firestore problem report metadata.
+
+### 3. Out-of-the-Box `FileProvider` Support
+- Added library-level `FileProvider` declaration (`${applicationId}.fileprovider`) and `dcadm_file_paths.xml` in the library manifest.
+- Consuming apps no longer need to write custom FileProvider configurations in their app manifest or XML files to support backup file sharing.
+
+---
+
+### 📦 Migration Guide: Upgrading from v1.4.0 to v1.5.0
+
+#### 1. Update Dependency Version
+In your app's `build.gradle.kts`:
+```diff
+dependencies {
+-   implementation("com.github.Saawry:dcadm:1.4.0")
++   implementation("com.github.Saawry:dcadm:1.5.0")
+}
+```
+
+#### 2. Backup Activity Workflow Updates
+- **v1.4.0 Flow**: Users accessed local database export/import by tapping an "Advance Options" card in `BackupActivity`, which navigated them to a separate `AdvanceOptionsActivity`.
+- **v1.5.0 Flow**: Local database operations now appear directly within `BackupActivity` as individual **"Database Export"** and **"Database Import"** cards whenever `profile.export == true`. No extra navigation step is required for end users.
+- **Backward Compatibility**: `DcadmConfig.openAdvanceOptions(context)` and `AdvanceOptionsActivity` remain available if you prefer launching the standalone diagnostics screen.
+
+#### 3. User Permission Behavior
+- New registrations continue to initialize with `export = false`.
+- To enable database export and import for a user, update their document in Cloud Firestore (`/Users/{uid}`) or call:
+```kotlin
+userRepository.updateExportStatus(uid, export = true, context)
 ```
 
 ---

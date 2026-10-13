@@ -597,12 +597,14 @@ class DcadmViewModel(
             val result = repo.exportDatabaseToUri(destinationUri)
             if (result.isSuccess) {
                 val stats = repo.getDatabaseStats()
+                val successMsg = applicationContext.getString(R.string.dcadm_local_export_success)
                 _uiState.update {
                     it.copy(
                         isExportingLocal = false,
                         localExportSuccess = true,
                         databaseStats = stats,
-                        localOperationMessage = applicationContext.getString(R.string.dcadm_local_export_success)
+                        localOperationMessage = successMsg,
+                        toastMessage = successMsg
                     )
                 }
             } else {
@@ -612,7 +614,8 @@ class DcadmViewModel(
                         isExportingLocal = false,
                         localExportSuccess = false,
                         error = err,
-                        localOperationMessage = err
+                        localOperationMessage = err,
+                        toastMessage = err
                     )
                 }
             }
@@ -634,12 +637,14 @@ class DcadmViewModel(
             val result = repo.importDatabaseFromUri(sourceUri)
             if (result.isSuccess && result.getOrNull() == true) {
                 val stats = repo.getDatabaseStats()
+                val successMsg = applicationContext.getString(R.string.dcadm_local_import_success)
                 _uiState.update {
                     it.copy(
                         isImportingLocal = false,
                         localImportSuccess = true,
                         databaseStats = stats,
-                        localOperationMessage = applicationContext.getString(R.string.dcadm_local_import_success)
+                        localOperationMessage = successMsg,
+                        toastMessage = successMsg
                     )
                 }
             } else {
@@ -649,7 +654,8 @@ class DcadmViewModel(
                         isImportingLocal = false,
                         localImportSuccess = false,
                         error = err,
-                        localOperationMessage = err
+                        localOperationMessage = err,
+                        toastMessage = err
                     )
                 }
             }

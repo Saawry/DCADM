@@ -102,7 +102,7 @@ object DcadmConfig {
                 val crashlytics = com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance()
                 crashlytics.setCustomKey("host_app_name", hostAppName)
                 crashlytics.setCustomKey("dcadm_db_name", dbName)
-                crashlytics.setCustomKey("dcadm_version", "1.4.0")
+                crashlytics.setCustomKey("dcadm_version", "1.5.0")
             }
         } catch (ignored: Exception) {}
     }

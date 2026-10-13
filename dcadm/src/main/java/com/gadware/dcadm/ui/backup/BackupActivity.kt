@@ -15,6 +15,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import android.content.Intent
+import android.net.Uri
+import androidx.core.content.FileProvider
 import com.gadware.dcadm.DcadmConfig
 import com.gadware.dcadm.R
 import com.gadware.dcadm.databinding.DcadmActivitySettingsBinding
@@ -22,7 +25,9 @@ import com.gadware.dcadm.databinding.DcadmDialogConfigureDriveBinding
 import com.gadware.dcadm.databinding.DcadmDialogRestoreBinding
 import com.gadware.dcadm.ui.DcadmViewModel
 import com.gadware.dcadm.ui.DcadmViewModelFactory
+import com.gadware.dcadm.utils.DcadmLog
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.Locale
 
 class BackupActivity : AppCompatActivity() {
@@ -33,6 +38,8 @@ class BackupActivity : AppCompatActivity() {
 
     private lateinit var intentLauncher: ActivityResultLauncher<IntentSenderRequest>
     private lateinit var restoreLauncher: ActivityResultLauncher<String>
+    private lateinit var exportLauncher: ActivityResultLauncher<String>
+    private lateinit var importLauncher: ActivityResultLauncher<Array<String>>
     private var alert: AlertDialog? = null
 
     override fun attachBaseContext(newBase: android.content.Context) {
@@ -142,6 +149,18 @@ class BackupActivity : AppCompatActivity() {
                     this
                 )
             }
+
+        exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri: Uri? ->
+            if (uri != null) {
+                viewModel.exportLocalDatabase(uri)
+            }
+        }
+
+        importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+            if (uri != null) {
+                showImportConfirmationDialog(uri)
+            }
+        }
     }
 
     private fun setupUI() {
@@ -164,8 +183,18 @@ class BackupActivity : AppCompatActivity() {
             viewModel.onManualRestoreClicked(this)
         }
 
-        binding.cardAdvanceOptions.setOnClickListener {
-            DcadmConfig.openAdvanceOptions(this)
+        binding.btnExportLocal.setOnClickListener {
+            val dbName = DcadmConfig.getDatabaseName()
+            val defaultFileName = "${dbName}_backup_${System.currentTimeMillis()}.zip"
+            exportLauncher.launch(defaultFileName)
+        }
+
+        binding.btnShareBackup.setOnClickListener {
+            shareBackupFile()
+        }
+
+        binding.btnImportLocal.setOnClickListener {
+            importLauncher.launch(arrayOf("*/*", "application/zip", "application/octet-stream", "application/x-sqlite3"))
         }
 
         binding.btnSaveRoutine.setOnClickListener {
@@ -184,6 +213,46 @@ class BackupActivity : AppCompatActivity() {
 
                 override fun onNothingSelected(parent: AdapterView<*>) {}
             }
+    }
+
+    private fun showImportConfirmationDialog(uri: Uri) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dcadm_import_confirm_title)
+            .setMessage(R.string.dcadm_import_confirm_msg)
+            .setIcon(R.drawable.outline_warning_amber_24)
+            .setPositiveButton(R.string.dcadm_import_confirm_btn) { dialog, _ ->
+                dialog.dismiss()
+                viewModel.importLocalDatabase(uri)
+            }
+            .setNegativeButton(R.string.dcadm_btn_cancel) { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun shareBackupFile() {
+        viewModel.createShareableBackup { file: File? ->
+            if (file == null || !file.exists()) {
+                android.widget.Toast.makeText(this, R.string.dcadm_advance_share_failed, android.widget.Toast.LENGTH_SHORT).show()
+                return@createShareableBackup
+            }
+
+            try {
+                val authority = "${packageName}.fileprovider"
+                val contentUri = FileProvider.getUriForFile(this, authority, file)
+
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/zip"
+                    putExtra(Intent.EXTRA_STREAM, contentUri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+
+                startActivity(Intent.createChooser(shareIntent, getString(R.string.dcadm_share_chooser_title)))
+            } catch (e: Exception) {
+                DcadmLog.e(TAG, "Share failed: ${e.message}")
+                android.widget.Toast.makeText(this, getString(R.string.dcadm_advance_share_error, e.message ?: ""), android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun observeState() {
@@ -229,11 +298,22 @@ class BackupActivity : AppCompatActivity() {
                         )
                         binding.tvUserCountry.text = profile.country
 
-                        // Advance options visible if export is true
-                        binding.cardAdvanceOptions.visibility = if (profile.export) View.VISIBLE else View.GONE
+                        // Individual Local Database Export & Import visible if export is true
+                        val isExportAllowed = profile.export
+                        binding.cardExportDatabase.visibility = if (isExportAllowed) View.VISIBLE else View.GONE
+                        binding.cardImportDatabase.visibility = if (isExportAllowed) View.VISIBLE else View.GONE
                     } ?: run {
-                        binding.cardAdvanceOptions.visibility = View.GONE
+                        binding.cardExportDatabase.visibility = View.GONE
+                        binding.cardImportDatabase.visibility = View.GONE
                     }
+
+                    // LOCAL DB OPERATIONS PROGRESS & BUTTON STATES
+                    val isLocalBusy = uiState.isExportingLocal || uiState.isImportingLocal
+                    binding.progressExport.visibility = if (uiState.isExportingLocal) View.VISIBLE else View.GONE
+                    binding.progressImport.visibility = if (uiState.isImportingLocal) View.VISIBLE else View.GONE
+                    binding.btnExportLocal.isEnabled = !isLocalBusy
+                    binding.btnShareBackup.isEnabled = !isLocalBusy
+                    binding.btnImportLocal.isEnabled = !isLocalBusy
 
                     // BACKUP STATUS
                     binding.tvLastBackup.text = uiState.lastBackupDateStr
