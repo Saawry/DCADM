@@ -67,12 +67,16 @@ class InsertDataActivity : AppCompatActivity() {
                 binding.etEmail.text?.clear()
                 binding.etName.clearFocus()
                 binding.etEmail.clearFocus()
+                com.gadware.dcadm.DcadmConfig.recordReviewMilestoneAction(this@InsertDataActivity)
+                com.gadware.dcadm.DcadmConfig.logCrashlyticsBreadcrumb("Inserted user record: ${newUser.name}")
                 Toast.makeText(this, "User inserted successfully", Toast.LENGTH_SHORT).show()
             }
         }
 
         binding.btnAddSamples.setOnClickListener {
             viewModel.insertSampleUsers(3) {
+                com.gadware.dcadm.DcadmConfig.recordReviewMilestoneAction(this@InsertDataActivity)
+                com.gadware.dcadm.DcadmConfig.logCrashlyticsBreadcrumb("Inserted 3 sample users")
                 Toast.makeText(this, "3 sample records added", Toast.LENGTH_SHORT).show()
             }
         }
@@ -88,6 +92,8 @@ class InsertDataActivity : AppCompatActivity() {
             .setMessage("Are you sure you want to delete ${user.name}?")
             .setPositiveButton("Delete") { dialog, _ ->
                 viewModel.delete(user)
+                com.gadware.dcadm.DcadmConfig.recordReviewMilestoneAction(this@InsertDataActivity)
+                com.gadware.dcadm.DcadmConfig.logCrashlyticsBreadcrumb("Deleted single user record: ${user.name}")
                 dialog.dismiss()
                 Toast.makeText(this, "Deleted ${user.name}", Toast.LENGTH_SHORT).show()
             }
@@ -104,6 +110,7 @@ class InsertDataActivity : AppCompatActivity() {
             .setIcon(com.gadware.dcadm.R.drawable.outline_warning_amber_24)
             .setPositiveButton("Clear All") { dialog, _ ->
                 viewModel.deleteAll {
+                    com.gadware.dcadm.DcadmConfig.logCrashlyticsBreadcrumb("Cleared all local user records")
                     Toast.makeText(this, "All records deleted", Toast.LENGTH_SHORT).show()
                 }
                 dialog.dismiss()

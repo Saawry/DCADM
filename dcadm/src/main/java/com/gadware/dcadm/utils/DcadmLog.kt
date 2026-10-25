@@ -41,6 +41,28 @@ object DcadmLog {
         }
     }
 
+    fun w(tag: String, message: String, throwable: Throwable? = null) {
+        if (BuildConfig.DEBUG) {
+            if (throwable != null) {
+                Log.w(tag, message, throwable)
+            } else {
+                Log.w(tag, message)
+            }
+        }
+
+        try {
+            if (DcadmConfig.isCrashlyticsEnabled()) {
+                val crashlytics = FirebaseCrashlytics.getInstance()
+                crashlytics.log("$tag [WARN]: $message")
+                if (throwable != null) {
+                    crashlytics.recordException(throwable)
+                }
+            }
+        } catch (ignored: Exception) {
+            // Safe fallback if Firebase is not initialized
+        }
+    }
+
     fun i(tag: String, message: String) {
         if (BuildConfig.DEBUG) {
             Log.i(tag, message)

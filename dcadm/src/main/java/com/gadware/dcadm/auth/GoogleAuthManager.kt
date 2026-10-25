@@ -133,7 +133,12 @@ class GoogleAuthManager(private val context: Context) {
         return try {
             val result = authorizationClient.authorize(authorizationRequest).await()
             if (result.hasResolution()) {
-                DcadmLog.d("GoogleAuthManager", "Silent authorization resolution required for $email")
+                DcadmLog.d("GoogleAuthManager", "Silent authorization resolution returned for $email. Trying GoogleAuthUtil fallback.")
+                val fallbackToken = getGoogleAuthUtilToken(context, email)
+                if (fallbackToken != null) {
+                    sessionManager.saveDriveToken(fallbackToken)
+                    return Result.success(fallbackToken)
+                }
                 Result.failure(AuthResolutionRequiredException(result.pendingIntent))
             } else {
                 val accessToken = result.accessToken
@@ -142,16 +147,37 @@ class GoogleAuthManager(private val context: Context) {
                     sessionManager.saveDriveToken(accessToken)
                     Result.success(accessToken)
                 } else {
-                    DcadmLog.e("GoogleAuthManager", "Silent authorization succeeded but access token is null for $email")
-                    Result.failure(Exception("Authorization succeeded but access token is null"))
+                    val fallbackToken = getGoogleAuthUtilToken(context, email)
+                    if (fallbackToken != null) {
+                        sessionManager.saveDriveToken(fallbackToken)
+                        Result.success(fallbackToken)
+                    } else {
+                        DcadmLog.e("GoogleAuthManager", "Silent authorization succeeded but access token is null for $email")
+                        Result.failure(Exception("Authorization succeeded but access token is null"))
+                    }
                 }
             }
-        } catch (e: ApiException) {
-            DcadmLog.e("GoogleAuthManager", "Silent auth failed for $email", e)
-            Result.failure(e)
         } catch (e: Exception) {
-            DcadmLog.e("GoogleAuthManager", "Silent auth error for $email", e)
-            Result.failure(e)
+            DcadmLog.d("GoogleAuthManager", "Identity.authorize failed for $email: ${e.message}. Trying GoogleAuthUtil fallback.")
+            val fallbackToken = getGoogleAuthUtilToken(context, email)
+            if (fallbackToken != null) {
+                sessionManager.saveDriveToken(fallbackToken)
+                Result.success(fallbackToken)
+            } else {
+                DcadmLog.e("GoogleAuthManager", "Silent auth error for $email", e)
+                Result.failure(e)
+            }
+        }
+    }
+
+    private suspend fun getGoogleAuthUtilToken(context: Context, email: String): String? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+            val scopeStr = "oauth2:${DriveScopes.DRIVE_APPDATA}"
+            val account = Account(email, "com.google")
+            com.google.android.gms.auth.GoogleAuthUtil.getToken(context, account, scopeStr)
+        } catch (e: Exception) {
+            DcadmLog.d("GoogleAuthManager", "GoogleAuthUtil.getToken background attempt: ${e.message}")
+            null
         }
     }
 

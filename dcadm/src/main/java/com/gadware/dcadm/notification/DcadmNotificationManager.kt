@@ -61,6 +61,20 @@ object DcadmNotificationManager {
         }
     }
 
+    /**
+     * Checks whether notification permission is granted for the application.
+     */
+    fun hasNotificationPermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()
+        }
+    }
+
     const val TOPIC_ALL = "all"
     const val TOPIC_UPDATES = "updates"
     const val TOPIC_PAID_USERS = "paid_users"

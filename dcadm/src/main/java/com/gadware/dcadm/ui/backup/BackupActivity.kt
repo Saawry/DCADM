@@ -41,6 +41,7 @@ class BackupActivity : AppCompatActivity() {
     private lateinit var exportLauncher: ActivityResultLauncher<String>
     private lateinit var importLauncher: ActivityResultLauncher<Array<String>>
     private var alert: AlertDialog? = null
+    private var isRoutineSpinnerInitialized = false
 
     override fun attachBaseContext(newBase: android.content.Context) {
         val sharedPref = newBase.getSharedPreferences("dcadm_locale_pref", android.content.Context.MODE_PRIVATE)
@@ -197,22 +198,32 @@ class BackupActivity : AppCompatActivity() {
             importLauncher.launch(arrayOf("*/*", "application/zip", "application/octet-stream", "application/x-sqlite3"))
         }
 
-        binding.btnSaveRoutine.setOnClickListener {
-            viewModel.saveRoutineConfig()
-        }
-
-        val options = listOf("Never", "Daily", "Weekly", "Monthly")
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, options)
+        val routineOptions = listOf("Never", "Daily", "Weekly", "Monthly")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, routineOptions)
         binding.spinnerRoutine.adapter = adapter
 
         binding.spinnerRoutine.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                    viewModel.onRoutineConfigChanged(options[position])
+                    if (!isRoutineSpinnerInitialized) {
+                        return
+                    }
+                    val selected = routineOptions[position]
+                    viewModel.onRoutineConfigChanged(selected)
+                    viewModel.saveRoutineConfig()
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>) {}
             }
+
+        binding.btnSaveRoutine.setOnClickListener {
+            viewModel.saveRoutineConfig()
+            android.widget.Toast.makeText(
+                this,
+                getString(R.string.dcadm_backup_schedule_saved),
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun showImportConfirmationDialog(uri: Uri) {
@@ -317,6 +328,15 @@ class BackupActivity : AppCompatActivity() {
 
                     // BACKUP STATUS
                     binding.tvLastBackup.text = uiState.lastBackupDateStr
+
+                    // ROUTINE BACKUP CONFIG SPINNER SYNC
+                    val routineOptions = listOf("Never", "Daily", "Weekly", "Monthly")
+                    val targetIndex = routineOptions.indexOf(uiState.routineConfig)
+                    if (targetIndex >= 0 && binding.spinnerRoutine.selectedItemPosition != targetIndex) {
+                        isRoutineSpinnerInitialized = false
+                        binding.spinnerRoutine.setSelection(targetIndex, false)
+                    }
+                    isRoutineSpinnerInitialized = true
 
                     // DRIVE LOADING
                     binding.progressDrive.visibility =

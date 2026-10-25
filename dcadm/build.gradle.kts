@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         minSdk = 24
-        version = "1.5.0"
+        version = "1.5.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -64,7 +64,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "com.github.Saawry"
             artifactId = "dcadm"
-            version = "1.5.0"
+            version = "1.5.1"
             afterEvaluate {
                 from(components["release"])
             }
@@ -113,7 +113,7 @@ dependencies {
     ksp(libs.room.compiler)
 
     // WorkManager
-    implementation(libs.androidx.work.runtime.ktx)
+    api(libs.androidx.work.runtime.ktx)
 
     // Google Play In-App Review & In-App Update
     implementation(libs.play.review)

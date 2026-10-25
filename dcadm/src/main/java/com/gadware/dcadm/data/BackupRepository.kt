@@ -36,9 +36,16 @@ class BackupRepository(
             val driveHelper = DriveServiceHelper(context, accessToken)
 
             // 2. Checkpoint Database (Ensure all data is in the main .db file or synced)
-            // Using a raw query to checkpoint
-            database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").close()
-            database.close()
+            try {
+                database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(FULL)").close()
+            } catch (e: Exception) {
+                DcadmLog.d("BackupOperation", "Checkpoint warning: ${e.message}")
+            }
+            try {
+                database.close()
+            } catch (e: Exception) {
+                DcadmLog.d("BackupOperation", "Database close warning: ${e.message}")
+            }
 
             // 3. Identify DB files
             val dbName = DcadmConfig.getDatabaseName()

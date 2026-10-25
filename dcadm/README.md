@@ -48,7 +48,7 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.Saawry:dcadm:1.5.0")
+    implementation("com.github.Saawry:dcadm:1.5.1")
     
     // Room and Coroutines as used in your host app
 }
@@ -210,7 +210,17 @@ Launch `BackupActivity` to view profile information, trigger manual Google Drive
 ```kotlin
 val intent = Intent(this, com.gadware.dcadm.ui.backup.BackupActivity::class.java)
 startActivity(intent)
+
+// Immediate Diagnostic Test for Routine Background Worker
+val workId = DcadmConfig.triggerRoutineBackupNow(this)
+WorkManager.getInstance(this).getWorkInfoByIdLiveData(workId).observe(this) { workInfo ->
+    // Observe running / succeeded / failed states
+}
 ```
+
+> **Routine Backup Reliability:**
+> - Routine backup schedules (`Daily`, `Weekly`, `Monthly`) are automatically preserved and registered with Android `WorkManager` via an internal startup provider (`DcadmInitProvider`) and `DcadmConfig.init(context = this)`.
+> - Scheduled workers enforce `NetworkType.CONNECTED`, exponential retry backoffs, silent OAuth token renewal via `GoogleAuthUtil`, and safe Android 14+ `dataSync` foreground service handling.
 
 #### C. Opening Advance Options Directly
 Launch `AdvanceOptionsActivity` directly for local database export, import, diagnostics, and problem reporting:
@@ -256,6 +266,56 @@ DcadmConfig.init(
 // Configure optional support channels
 DcadmConfig.setReportProblemActivityClassName("com.example.myapp.ReportProblemActivity")
 DcadmConfig.setSupportEmail("support@example.com")
+```
+
+---
+
+## 🚀 What's New in v1.5.1 (Implementation & Migration Guide)
+
+Version `1.5.1` fixes and guarantees routine background cloud backup execution across all host apps, devices, and Android OS versions (including Android 14+):
+
+### 1. Guaranteed Routine Backup with `DcadmInitProvider` & Auto-Sync
+- **Zero-Boilerplate Startup Sync**: Added `DcadmInitProvider`, which automatically captures `applicationContext` on app launch and ensures the periodic backup schedule in Android `WorkManager` is active and synchronized with the user's stored preferences (`Daily`, `Weekly`, `Monthly`).
+- **Schedule Preservation Across Reboots & App Restarts**: WorkManager periodic requests are now enqueued with `ExistingPeriodicWorkPolicy.KEEP` during initialization, preserving existing intervals and schedules without resetting timers.
+- **Explicit API**: Introduced `DcadmConfig.syncRoutineBackupSchedule(context)` for manual syncs when needed.
+
+### 2. Resilient Background Worker Pipeline (`BackupWorker`)
+- **Non-Fatal Retries**: Replaced fatal `Result.failure()` calls with exponential `Result.retry()`. On exhausted attempts, returns `Result.success(workDataOf("error" to ...))` to protect WorkManager from permanently cancelling the unique `PeriodicWorkRequest`.
+- **Silent Background Token Renewal**: Added `GoogleAuthUtil.getToken(...)` fallback on `Dispatchers.IO`, enabling silent OAuth2 token renewal for Google Drive AppData access even when running in background workers without a foreground Activity.
+- **Network Constraints**: Added `NetworkType.CONNECTED` to prevent routine backup executions when offline.
+- **Android 14+ (API 34+) Compliance**: Declared `SystemForegroundService` with `foregroundServiceType="dataSync"` and guarded `setForeground()` against Android 12+ background restrictions.
+
+### 3. Immediate Testing Diagnostic API
+- Added `DcadmConfig.triggerRoutineBackupNow(context): UUID`, allowing developers to test and verify the entire background `BackupWorker` pipeline on-demand without waiting for 24-hour periodic cycles.
+- WorkManager dependency exposed transitively (`api(libs.androidx.work.runtime.ktx)`) so host apps can observe work status directly.
+
+### 4. UI Spinner Bug Fix
+- Fixed an issue in `BackupActivity` where setting the spinner adapter fired a spurious `onItemSelected(0)` event that reset user schedules to "Never".
+- Added automatic configuration saving upon spinner item selection.
+
+---
+
+### 📦 Migration Guide: Upgrading from v1.5.0 to v1.5.1
+
+In your app module's `build.gradle.kts`:
+```diff
+dependencies {
+-   implementation("com.github.Saawry:dcadm:1.5.0")
++   implementation("com.github.Saawry:dcadm:1.5.1")
+}
+```
+
+In your `Application.onCreate()`:
+```diff
+DcadmConfig.init(
++   context = this,
+    dbName = AppDatabase.DATABASE_NAME,
+    hostAppName = getString(R.string.app_name),
+    clientId = getString(R.string.web_client_id),
+    dbClass = AppDatabase::class.java,
+    homeActivityClassName = MainActivity::class.java.name,
+    onDatabaseReopenNeeded = { AppDatabase.resetDatabase() }
+)
 ```
 
 ---

@@ -8,8 +8,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.room.RoomDatabase
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
@@ -178,12 +181,18 @@ class DcadmViewModel(
         val workName = "routine_backup"
         if (config == "Never") {
             workManager.cancelUniqueWork(workName)
+            DcadmLog.d("DcadmViewModel", "Routine backup cancelled (set to Never).")
             return
         }
 
-        val driveEmail = _uiState.value.driveEmail
+        val driveEmail = _uiState.value.driveEmail?.takeIf { it.isNotBlank() }
             ?: sessionManager.getUserProfile()?.driveEmail?.takeIf { it.isNotBlank() }
-            ?: sessionManager.getUserEmail()
+            ?: sessionManager.getUserEmail()?.takeIf { it.isNotBlank() }
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email
+
+        if (!driveEmail.isNullOrBlank() && sessionManager.getUserEmail().isNullOrBlank()) {
+            sessionManager.saveUserEmail(driveEmail)
+        }
 
         val inputDataBuilder = Data.Builder()
         if (!driveEmail.isNullOrBlank()) {
@@ -198,11 +207,23 @@ class DcadmViewModel(
             else -> return
         }
 
-        val request = PeriodicWorkRequestBuilder<BackupWorker>(repeatInterval.first, repeatInterval.second)
-            .setInputData(inputData)
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
-        workManager.enqueueUniquePeriodicWork(workName, ExistingPeriodicWorkPolicy.UPDATE, request)
+        val request = PeriodicWorkRequestBuilder<BackupWorker>(repeatInterval.first, repeatInterval.second)
+            .setConstraints(constraints)
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
+            .setInputData(inputData)
+            .addTag("routine_backup")
+            .build()
+
+        workManager.enqueueUniquePeriodicWork(
+            workName,
+            ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+            request
+        )
+        DcadmLog.d("DcadmViewModel", "Routine backup scheduled: $config for $driveEmail with Network constraint.")
     }
 
     fun authDriveMail(activity: Activity) {

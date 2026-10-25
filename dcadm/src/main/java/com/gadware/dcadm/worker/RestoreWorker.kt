@@ -14,10 +14,11 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.gadware.dcadm.DcadmConfig
 import com.gadware.dcadm.R
-import com.gadware.dcadm.auth.AuthResolutionRequiredException
 import com.gadware.dcadm.auth.GoogleAuthManager
 import com.gadware.dcadm.data.BackupRepository
 import com.gadware.dcadm.data.SessionManager
+import com.gadware.dcadm.drive.DriveServiceHelper
+import com.gadware.dcadm.utils.DcadmLog
 
 class RestoreWorker(
     appContext: Context,
@@ -26,7 +27,7 @@ class RestoreWorker(
 
     private val authManager = GoogleAuthManager(appContext)
     private val sessionManager = SessionManager(appContext)
-    
+
     private val database: androidx.room.RoomDatabase by lazy {
         DcadmConfig.getDatabase(appContext)
     }
@@ -34,34 +35,55 @@ class RestoreWorker(
     private val backupRepository by lazy { BackupRepository(appContext, database, authManager) }
 
     override suspend fun doWork(): Result {
-        val driveEmail = inputData.getString("DRIVE_EMAIL")
+        val driveEmail = inputData.getString("DRIVE_EMAIL")?.takeIf { it.isNotBlank() }
             ?: sessionManager.getUserProfile()?.driveEmail?.takeIf { it.isNotBlank() }
-            ?: sessionManager.getUserEmail()
-            ?: return Result.failure(workDataOf("reason" to "missing_email"))
+            ?: sessionManager.getUserEmail()?.takeIf { it.isNotBlank() }
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email?.takeIf { it.isNotBlank() }
+
+        if (driveEmail.isNullOrBlank()) {
+            DcadmLog.w("RestoreWorker", "Missing authenticated email for restore operation.")
+            return Result.failure(workDataOf("reason" to "missing_email"))
+        }
 
         val tokenFromInput = inputData.getString("ACCESS_TOKEN")
-        val accessToken = if (!tokenFromInput.isNullOrBlank()) {
-            tokenFromInput
-        } else {
-            val authResult = authManager.silentDriveAccess(applicationContext, driveEmail)
-            if (authResult.isFailure) {
-                val exception = authResult.exceptionOrNull()
-                return if (exception is AuthResolutionRequiredException) {
-                    Result.failure(workDataOf("reason" to "consent_required"))
-                } else {
-                    Result.failure(workDataOf("reason" to (exception?.message ?: "auth_failed")))
+        var accessToken: String? = if (!tokenFromInput.isNullOrBlank()) tokenFromInput else null
+
+        if (accessToken.isNullOrBlank()) {
+            val savedToken = sessionManager.getDriveToken()
+            if (!savedToken.isNullOrBlank()) {
+                try {
+                    val driveHelper = DriveServiceHelper(applicationContext, savedToken)
+                    driveHelper.findBackupFile()
+                    accessToken = savedToken
+                    DcadmLog.d("RestoreWorker", "Existing session token is valid for $driveEmail")
+                } catch (e: Exception) {
+                    DcadmLog.d("RestoreWorker", "Saved token invalid or expired: ${e.message}")
                 }
             }
-            authResult.getOrThrow()
+        }
+
+        if (accessToken.isNullOrBlank()) {
+            val authResult = authManager.silentDriveAccess(applicationContext, driveEmail)
+            if (authResult.isSuccess) {
+                accessToken = authResult.getOrThrow()
+            } else {
+                val exception = authResult.exceptionOrNull()
+                DcadmLog.w("RestoreWorker", "Silent auth failed: ${exception?.message}")
+                return Result.failure(workDataOf("reason" to (exception?.message ?: "auth_failed")))
+            }
         }
 
         val dbName = DcadmConfig.getDatabaseName()
         val dbFile = applicationContext.getDatabasePath(dbName)
         val isLargeDb = dbFile.exists() && dbFile.length() > 5 * 1024 * 1024 // 5MB
 
-        // Set foreground info to show notification if DB is large
+        // Safe foreground notification if DB is large
         if (isLargeDb) {
-            setForeground(createForegroundInfo(applicationContext.getString(R.string.dcadm_worker_restore_progress)))
+            try {
+                setForeground(createForegroundInfo(applicationContext.getString(R.string.dcadm_worker_restore_progress)))
+            } catch (e: Exception) {
+                DcadmLog.w("RestoreWorker", "Could not set foreground info: ${e.message}")
+            }
         }
 
         return try {
@@ -78,7 +100,7 @@ class RestoreWorker(
                 Result.failure(workDataOf("error" to errorMsg))
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            DcadmLog.e("RestoreWorker", "Exception during restore", e)
             Result.failure(workDataOf("error" to (e.message ?: "Restore failed with exception")))
         }
     }
@@ -87,7 +109,7 @@ class RestoreWorker(
         val channelId = "restore_channel"
         val title = applicationContext.getString(R.string.dcadm_worker_restore_title)
         val cancel = applicationContext.getString(R.string.dcadm_worker_cancel)
-        
+
         val intent = WorkManager.getInstance(applicationContext)
             .createCancelPendingIntent(id)
 
@@ -109,7 +131,7 @@ class RestoreWorker(
             .setOngoing(true)
             .addAction(R.drawable.baseline_delete_24, cancel, intent)
             .build()
-            
+
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             ForegroundInfo(2, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

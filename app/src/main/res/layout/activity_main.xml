@@ -177,10 +177,37 @@
                             app:cornerRadius="8dp"
                             app:strokeColor="?attr/colorError" />
                     </LinearLayout>
+
+                    <!-- Export Permission Status & Developer Toggle (v1.5.0 Feature) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvExportPermissionStatus"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Export Permission: Disabled"
+                            android:textColor="?attr/colorOnSurfaceVariant"
+                            android:textSize="12sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnToggleExportPermission"
+                            style="@style/Widget.Material3.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Toggle Export (Dev)"
+                            android:textAllCaps="false"
+                            android:textSize="12sp" />
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Database Section Card -->
+            <!-- Room Database Section Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -212,7 +239,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginStart="12dp"
                             android:layout_weight="1"
-                            android:text="Room Database"
+                            android:text="Room SQLite Database"
                             android:textColor="?attr/colorOnSurface"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -228,10 +255,11 @@
                     </LinearLayout>
 
                     <TextView
+                        android:id="@+id/tvDbStats"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Database: DemoBackupRoomDBTest\nManage SQLite records to test backup, restore on empty DB, and export."
+                        android:text="Size: Calculating... | WAL: Active\nManage SQLite records to test backup, restore, and export."
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="13sp" />
 
@@ -277,10 +305,64 @@
                             app:cornerRadius="8dp"
                             app:strokeColor="?attr/colorError" />
                     </LinearLayout>
+
+                    <!-- Direct Database Operations (SAF Export, Import, Share & Diagnostics) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnExportDbDirect"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:text="Export ZIP"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp"
+                            app:icon="@drawable/outline_file_upload_24" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnImportDbDirect"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:text="Import DB"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp"
+                            app:icon="@drawable/outline_file_download_24" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnShareDbDirect"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:text="Share ZIP"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp"
+                            app:icon="@drawable/outline_share_24" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCheckIntegrity"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Run PRAGMA Integrity Check"
+                        android:textAllCaps="false" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Google Drive Backup Card -->
+            <!-- Google Drive Cloud Backup Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -337,6 +419,17 @@
                         android:textAllCaps="false"
                         app:cornerRadius="8dp"
                         app:icon="@drawable/outline_tune_24" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnTestRoutineWorkerNow"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Test Routine Backup Worker Now"
+                        android:textAllCaps="false"
+                        app:cornerRadius="8dp"
+                        app:icon="@drawable/baseline_sync_24" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -387,6 +480,15 @@
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:textSize="13sp" />
 
+                    <TextView
+                        android:id="@+id/tvNotificationPermissionStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Permission: Checking..."
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textSize="12sp" />
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -415,31 +517,119 @@
                             android:textAllCaps="false"
                             app:cornerRadius="8dp" />
                     </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Google Play, In-App Review, Updates & Diagnostics Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardUseCompatPadding="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/baseline_storefront_24"
+                            app:tint="?attr/colorPrimary" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:text="Play Services &amp; Diagnostics"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnTestCrashlytics"
                         style="@style/Widget.Material3.Button.TextButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Log Crashlytics Test Non-Fatal Error"
+                        android:layout_marginTop="10dp"
+                        android:text="Log Crashlytics Breadcrumb &amp; Non-Fatal"
                         android:textAllCaps="false" />
 
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnTestInAppReview"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:text="In-App Review"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnTestSmartReview"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:text="Smart Review"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp" />
+                    </LinearLayout>
+
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnTestInAppReview"
+                        android:id="@+id/btnOpenPlayStore"
                         style="@style/Widget.Material3.Button.TextButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Launch In-App Review"
+                        android:text="Open Play Store Page"
                         android:textAllCaps="false" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnTestInAppUpdate"
-                        style="@style/Widget.Material3.Button.TextButton"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Check for In-App Updates"
-                        android:textAllCaps="false" />
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnTestInAppUpdate"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:text="Flexible Update"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnTestImmediateUpdate"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:text="Immediate Update"
+                            android:textAllCaps="false"
+                            app:cornerRadius="8dp" />
+                    </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

@@ -6,6 +6,20 @@ import android.widget.ImageView
 import androidx.annotation.DrawableRes
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
+import androidx.work.Data
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.gadware.dcadm.data.SessionManager
+import com.gadware.dcadm.utils.DcadmLog
+import com.gadware.dcadm.worker.BackupWorker
+import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 /**
  * Interface for receiving database lifecycle events from Dcadm.
@@ -24,6 +38,7 @@ fun interface DatabaseLifecycleCallback {
  * Host apps must initialize this to provide database information and lifecycle callbacks.
  */
 object DcadmConfig {
+    private var applicationContext: Context? = null
     private var databaseName: String = "app_db"
     private var appName: String = "App"
     private var webClientId: String = ""
@@ -62,6 +77,7 @@ object DcadmConfig {
      * @param termsAndPrivacyUrl URL of the host app's Terms & Conditions / Privacy Policy web page.
      * @param appLogoResId Optional custom logo drawable resource ID. If null, the library dynamically loads the host app's launcher icon.
      * @param firestoreCollection Optional Firestore collection name for user profiles (defaults to "users").
+     * @param context Optional Application or Activity context to immediately sync routine backup and background jobs.
      * @param showBranding Optional flag to display the developer/publisher ribbon on the login screen.
      * @param companyName Optional publisher/developer company name for branding ribbon.
      * @param companyUrl Optional publisher/developer website URL for branding ribbon.
@@ -81,6 +97,7 @@ object DcadmConfig {
         companyName: String? = null,
         companyUrl: String? = null,
         @DrawableRes companyLogoResId: Int? = null,
+        context: Context? = null,
         onDatabaseReopenNeeded: DatabaseLifecycleCallback? = null
     ) {
         this.databaseName = dbName
@@ -97,13 +114,25 @@ object DcadmConfig {
         this.companyLogoResId = companyLogoResId
         this.databaseLifecycleCallback = onDatabaseReopenNeeded
 
+        if (context != null) {
+            setApplicationContext(context)
+            syncRoutineBackupSchedule(context)
+        } else {
+            applicationContext?.let { syncRoutineBackupSchedule(it) }
+        }
+
         try {
             if (crashlyticsEnabled) {
                 val crashlytics = com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance()
                 crashlytics.setCustomKey("host_app_name", hostAppName)
                 crashlytics.setCustomKey("dcadm_db_name", dbName)
-                crashlytics.setCustomKey("dcadm_version", "1.5.0")
+                crashlytics.setCustomKey("dcadm_version", "1.5.1")
             }
+        } catch (ignored: Exception) {}
+
+        try {
+            RemoteConfigManager.init()
+            RemoteConfigManager.fetch { /* silent background fetch */ }
         } catch (ignored: Exception) {}
     }
 
@@ -123,6 +152,7 @@ object DcadmConfig {
         companyName: String? = null,
         companyUrl: String? = null,
         @DrawableRes companyLogoResId: Int? = null,
+        context: Context? = null,
         onDatabaseReopenNeeded: () -> Unit
     ) {
         init(
@@ -138,8 +168,119 @@ object DcadmConfig {
             companyName = companyName,
             companyUrl = companyUrl,
             companyLogoResId = companyLogoResId,
+            context = context,
             onDatabaseReopenNeeded = DatabaseLifecycleCallback { onDatabaseReopenNeeded() }
         )
+    }
+
+    fun setApplicationContext(context: Context) {
+        this.applicationContext = context.applicationContext
+    }
+
+    fun getApplicationContext(): Context? = applicationContext
+
+    /**
+     * Synchronizes and verifies the routine backup schedule with Android WorkManager.
+     * Host applications can call this at any time (e.g. during Application.onCreate()),
+     * and it is also invoked automatically on application launch via ContentProvider.
+     *
+     * If the user configured routine backup to "Daily", "Weekly", or "Monthly",
+     * it ensures the unique PeriodicWorkRequest is active with network constraints.
+     * If configured to "Never", any active routine backup work is cancelled.
+     *
+     * @param context Application or Activity context.
+     */
+    fun syncRoutineBackupSchedule(context: Context) {
+        val appContext = context.applicationContext
+        setApplicationContext(appContext)
+
+        val sessionManager = SessionManager(appContext)
+        val config = sessionManager.getRoutineBackupConfig()
+        val workName = "routine_backup"
+        val workManager = WorkManager.getInstance(appContext)
+
+        if (config == "Never" || config.isBlank()) {
+            workManager.cancelUniqueWork(workName)
+            DcadmLog.d("DcadmConfig", "syncRoutineBackupSchedule: routine backup cancelled (config is $config).")
+            return
+        }
+
+        val driveEmail = sessionManager.getUserProfile()?.driveEmail?.takeIf { it.isNotBlank() }
+            ?: sessionManager.getUserEmail()?.takeIf { it.isNotBlank() }
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email
+
+        val inputDataBuilder = Data.Builder()
+        if (!driveEmail.isNullOrBlank()) {
+            inputDataBuilder.putString("DRIVE_EMAIL", driveEmail)
+        }
+
+        val repeatInterval = when (config) {
+            "Daily" -> 1L to TimeUnit.DAYS
+            "Weekly" -> 7L to TimeUnit.DAYS
+            "Monthly" -> 30L to TimeUnit.DAYS
+            else -> return
+        }
+
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val request = PeriodicWorkRequestBuilder<BackupWorker>(
+            repeatInterval.first, repeatInterval.second
+        )
+            .setConstraints(constraints)
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
+            .setInputData(inputDataBuilder.build())
+            .addTag("routine_backup")
+            .build()
+
+        workManager.enqueueUniquePeriodicWork(
+            workName,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request
+        )
+        DcadmLog.d("DcadmConfig", "syncRoutineBackupSchedule: routine backup verified and scheduled ($config for $driveEmail).")
+    }
+
+    /**
+     * Immediately triggers an on-demand execution of [BackupWorker] via WorkManager
+     * using the saved routine backup configuration and credentials.
+     * This allows host apps and developers to verify that routine background backups
+     * execute successfully in their environment without waiting for periodic intervals.
+     *
+     * @param context Application or Activity context.
+     * @return UUID of the enqueued one-time WorkRequest to allow status observation.
+     */
+    fun triggerRoutineBackupNow(context: Context): UUID {
+        val appContext = context.applicationContext
+        val sessionManager = SessionManager(appContext)
+
+        val driveEmail = sessionManager.getUserProfile()?.driveEmail?.takeIf { it.isNotBlank() }
+            ?: sessionManager.getUserEmail()?.takeIf { it.isNotBlank() }
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email
+
+        val inputDataBuilder = Data.Builder()
+        if (!driveEmail.isNullOrBlank()) {
+            inputDataBuilder.putString("DRIVE_EMAIL", driveEmail)
+        }
+
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val request = OneTimeWorkRequestBuilder<BackupWorker>()
+            .setConstraints(constraints)
+            .setInputData(inputDataBuilder.build())
+            .addTag("routine_backup_immediate")
+            .build()
+
+        WorkManager.getInstance(appContext).enqueueUniqueWork(
+            "routine_backup_immediate",
+            ExistingWorkPolicy.REPLACE,
+            request
+        )
+        DcadmLog.d("DcadmConfig", "triggerRoutineBackupNow: dispatched immediate BackupWorker with id ${request.id}")
+        return request.id
     }
 
     fun getDatabaseName() = databaseName
@@ -214,6 +355,47 @@ object DcadmConfig {
      */
     fun openProfile(context: Context) {
         val intent = android.content.Intent(context, com.gadware.dcadm.ui.profile.ProfileActivity::class.java)
+        if (context !is android.app.Activity) {
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+
+    /**
+     * Opens the Backup & Restore Settings Activity.
+     */
+    fun openBackup(context: Context, userType: String = "") {
+        val intent = android.content.Intent(context, com.gadware.dcadm.ui.backup.BackupActivity::class.java).apply {
+            if (userType.isNotBlank()) {
+                putExtra("UserType", userType)
+            }
+        }
+        if (context !is android.app.Activity) {
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+
+    /**
+     * Opens the Login Activity for Google Sign-In and account authentication.
+     */
+    fun openLogin(context: Context) {
+        val intent = android.content.Intent(context, com.gadware.dcadm.ui.login.LoginActivity::class.java)
+        if (context !is android.app.Activity) {
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+
+    /**
+     * Opens the Registration Activity for profile onboarding.
+     */
+    fun openRegistration(context: Context, email: String = "") {
+        val intent = android.content.Intent(context, com.gadware.dcadm.ui.registration.RegistrationActivity::class.java).apply {
+            if (email.isNotBlank()) {
+                putExtra("email", email)
+            }
+        }
         if (context !is android.app.Activity) {
             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         }
