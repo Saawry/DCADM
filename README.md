@@ -56,7 +56,7 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.Saawry:dcadm:1.5.1")
+    implementation("com.github.Saawry:dcadm:1.6.0")
     
     // Room and Coroutines as used in your host app
 }
@@ -283,6 +283,92 @@ DcadmNotificationManager.showNotification(
 
 ---
 
+## 🚀 What's New in v1.6.0 (Google ID Token Sign-In & Nonce Support)
+
+Version `1.6.0` introduces a backward-compatible public authentication API that enables host applications to obtain the raw Google ID token during sign-in, with end-to-end cryptographic nonce verification to safeguard backend exchanges against replay attacks:
+
+### 1. New `signInWithIdToken` API & `GoogleSignInResult`
+- **Dual Credential Result**: Added `GoogleAuthManager.signInWithIdToken(activity, rawNonce): Result<GoogleSignInResult>`, returning both the authenticated `FirebaseUser` and the raw Google `idToken`.
+- **Result Model**:
+  ```kotlin
+  data class GoogleSignInResult(
+      val user: FirebaseUser,
+      val idToken: String
+  )
+  ```
+- **Same Unified Request**: Uses the same Android Credential Manager flow and Web Client ID configured in `DcadmConfig` as the standard `signIn(activity)` method.
+- **100% Backward Compatible**: The existing `signIn(activity): Result<FirebaseUser>` method retains its original signature and behavior.
+
+### 2. Cryptographic Nonce Hashing & Backend Replay Protection
+- **Automatic SHA-256 Hashing**: When the caller provides an optional `rawNonce` (e.g. generated dynamically or challenged by your backend), `GoogleAuthManager` automatically computes its lowercase SHA-256 hex digest and sends it to Google Identity Services via `GetGoogleIdOption.Builder.setNonce(hashedNonce)`.
+- **Backend Nonce Verification**: Google embeds the SHA-256 hash in the ID token's `nonce` claim. The host app sends the original unhashed `rawNonce` to its backend server alongside the ID token. The backend verifies that `SHA-256(rawNonce) == idToken.payload["nonce"]`, preventing man-in-the-middle replay attacks.
+- **Helper Method**: `GoogleAuthManager.hashNonce(rawNonce: String): String` is exposed statically should the host app or backend wish to compute identical SHA-256 hex digests.
+
+### 3. Security Hardening
+- **Token Masking**: `GoogleSignInResult.toString()` masks the raw token (`idToken=[PROTECTED]`) to prevent accidental token exposure in Logcat, analytics, or error reporting tools.
+- **Zero Disk / Session Persistence**: The Google ID token is **never** logged, and **never** stored in `SessionManager`, SharedPreferences, Room SQLite, or any local disk storage.
+- **One-Time Exchange & Expiry**: The Google ID token is designed strictly for a single exchange/verification with your backend server and expires in approximately one hour (~3600 seconds).
+
+### 4. Firestore Documentation Note
+- The real Cloud Firestore user collection is `/users/{uid}` (all lowercase by default, or as customized via `DcadmConfig.init(..., firestoreCollection = ...)`). Firestore collection names are case-sensitive.
+
+---
+
+### 💡 Usage Example: Obtaining ID Token & Verifying with Backend
+
+```kotlin
+val authManager = GoogleAuthManager(context)
+
+lifecycleScope.launch {
+    // 1. Generate a secure random raw nonce (or obtain one from your backend challenge)
+    val rawNonce = UUID.randomUUID().toString()
+
+    // 2. Sign in with Google and receive both FirebaseUser and Google ID token
+    val result: Result<GoogleSignInResult> = authManager.signInWithIdToken(
+        activity = this@MainActivity,
+        rawNonce = rawNonce
+    )
+
+    result.onSuccess { (user, idToken) ->
+        // Firebase user is already authenticated
+        Log.d("Auth", "Signed in as: ${user.email} (UID: ${user.uid})")
+
+        // 3. Send idToken and rawNonce to your backend API for verification
+        // NOTE: Never log idToken or save it to local SharedPreferences/SessionManager!
+        myBackendApi.verifyTokenWithServer(
+            idToken = idToken,
+            rawNonce = rawNonce
+        )
+    }.onFailure { error ->
+        when (error) {
+            is GetCredentialCancellationException -> {
+                Log.d("Auth", "User cancelled Google Sign-In")
+            }
+            is NoCredentialException -> {
+                Log.d("Auth", "No Google credentials available on device")
+            }
+            else -> {
+                Log.e("Auth", "Sign-in failed: ${error.message}", error)
+            }
+        }
+    }
+}
+```
+
+---
+
+### 📦 Migration Guide: Upgrading from v1.5.1 to v1.6.0
+
+In your app module's `build.gradle.kts`:
+```diff
+dependencies {
+-   implementation("com.github.Saawry:dcadm:1.5.1")
++   implementation("com.github.Saawry:dcadm:1.6.0")
+}
+```
+
+---
+
 ## 🚀 What's New in v1.5.1 (Implementation & Migration Guide)
 
 Version `1.5.1` fixes and guarantees routine background cloud backup execution across all host apps, devices, and Android OS versions (including Android 14+):
@@ -374,7 +460,7 @@ dependencies {
 
 #### 3. User Permission Behavior
 - New registrations continue to initialize with `export = false`.
-- To enable database export and import for a user, update their document in Cloud Firestore (`/Users/{uid}`) or call:
+- To enable database export and import for a user, update their document in Cloud Firestore (`/users/{uid}`) or call:
 ```kotlin
 userRepository.updateExportStatus(uid, export = true, context)
 ```

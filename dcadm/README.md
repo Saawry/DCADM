@@ -1,26 +1,34 @@
-# Dcadm - Android Google Drive Backup & Cloud Auth Module
+# Dcadm - Android Google Drive Backup, Push Notifications & Cloud Auth Module
 
-`dcadm` is a lightweight, drop-in Android library that handles **Google Sign-In (Credential Manager + Firebase Auth)**, **Google Drive AppData Backup & Restore (`DRIVE_APPDATA`)**, **Local Database Export & Import**, **Firestore User Profile Management**, and **Periodic Background Sync via WorkManager** for Room SQLite databases.
+`dcadm` is a lightweight, drop-in Android library that handles **Google Sign-In (Credential Manager + Firebase Auth)**, **Google Drive AppData Backup & Restore (`DRIVE_APPDATA`)**, **FCM Push Notifications & Geo/Tier Topic Subscriptions**, **Editable User Profile & Avatar Management**, **Offline Local Database Export & Import**, **Firestore User Profile Synchronization**, and **Periodic Background Sync via WorkManager** for Room SQLite databases.
 
 ---
 
 ## 🌟 Key Features
 
-- 🔐 **Modern Authentication**: Seamless Google Sign-In using Android Credential Manager + Firebase Auth handshake.
-- ☁️ **Google Drive AppData Backup**: Backs up and restores your Room SQLite database to the user's hidden Google Drive `appDataFolder`.
+- 🔐 **Modern Authentication**: Seamless Google Sign-In using Android Credential Manager + Firebase Auth handshake with silent token renewal.
+- 👤 **Editable Profile & Avatar Management (`ProfileActivity`)**:
+  - Auto-retrieves and synchronizes Google/Gmail profile avatars.
+  - Form to update Full Name, Country, Phone Number, Address, and custom Profile Image URL.
+  - Account Sign-Out and permanent Account Deletion with confirmation dialogs.
+- ☁️ **Google Drive AppData Backup**: Backs up and restores your Room SQLite database to the user's hidden Google Drive `appDataFolder` with single-account authorization and live result `Toast` notifications.
+- 🔔 **Push Notifications & Automated Topic Subscriptions**:
+  - Integrated `FirebaseMessagingService` with automatic device token synchronization.
+  - Subscribes users to targeted FCM topics: `all`, `updates`, `paid_users` / `free_users`, and `country_<countryCode>`.
+  - Supports rich titles, multiline messages, custom logos, deep linking, and external URL actions.
 - 📁 **Offline Local Database Export & Import**:
   - Export database backups directly to device storage via Android Storage Access Framework (SAF).
   - Share backup archives directly to other apps (Email, WhatsApp, Drive, etc.) via Android `ACTION_SEND`.
   - Import and restore from `.zip` or raw SQLite `.db` files with safety overwrite confirmations.
-- ⚙️ **Advance Options Activity (`AdvanceOptionsActivity`)**:
+- ⚙️ **Advance Options (`AdvanceOptionsActivity`)**:
   - Dedicated screen for local backup export, import, sharing, database diagnostics, integrity checks (`PRAGMA integrity_check`), and problem reporting.
-- 🔄 **Silent Background Backups**: Daily/Weekly/Monthly automated backups via `WorkManager` with silent OAuth token renewal.
+  - Visibility conditionally controlled by the user's `profile.export` property.
+- 🔄 **Periodic Background Backups**: Automated backups via `WorkManager` with silent OAuth token renewal and automatic `lastBackupDate` tracking.
 - 🐛 **Built-in Problem Reporting (`ReportProblemActivity`)**: Complete user bug reporting workflow saving to Cloud Firestore (`/Reports`) with user profile pre-filling, IP geolocation, pending report detection, and Material 3 UI.
 - 💥 **Firebase Crashlytics Integration**: Automatic non-fatal error reporting, breadcrumb logging, user ID attribution, and diagnostic custom keys.
 - ⭐ **Google Play In-App Review**: Frictionless in-app review prompts (`review-ktx:2.0.2`), smart milestone/quota throttling, and `FakeReviewManager` test mode.
 - 📲 **Google Play In-App Update**: Lifecycle-aware in-app updates (`app-update-ktx:2.1.0`) with zero `onResume` boilerplate, `FLEXIBLE` (with restart Snackbar) and `IMMEDIATE` modes, and `FakeAppUpdateManager` test mode.
-- 📋 **Firestore User Registration**: Checks for existing users and collects business/profile details for new users in Cloud Firestore.
-- 🎨 **100% Theme & Asset Inheritance**: Inherits your application's Material theme, color palette, and launcher icon automatically.
+- 🎨 **100% Theme & Asset Inheritance**: Inherits your application's Material 3 theme, color palette, and launcher icon automatically.
 - 🔒 **Encrypted Local Session**: Encrypted SharedPreferences for user profiles, Drive auth tokens, and backup metadata.
 
 ---
@@ -48,7 +56,7 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.Saawry:dcadm:1.5.1")
+    implementation("com.github.Saawry:dcadm:1.6.0")
     
     // Room and Coroutines as used in your host app
 }
@@ -79,9 +87,9 @@ plugins {
 3. **Enable Authentication**:
    - Navigate to **Build > Authentication > Sign-in method**.
    - Enable **Google** sign-in and save.
-4. **Enable Cloud Firestore**:
+4. **Enable Cloud Firestore & Cloud Messaging (FCM)**:
    - Navigate to **Build > Firestore Database** and click **Create database**.
-   - The library manages user registration in the `"users"` collection by default.
+   - Ensure **Cloud Messaging** is enabled.
 5. **Download `google-services.json`**:
    - Navigate to **Project Settings > General > Your apps**.
    - Download `google-services.json` and place it in your app module directory (`app/google-services.json`).
@@ -194,24 +202,36 @@ Make sure your `Application` class is registered in `app/src/main/AndroidManifes
 
 ---
 
-### 3. Launching Screens
+### 3. Launching Screens & Navigation
 
-#### A. Starting the Onboarding / Login Flow
-Launch `LoginActivity` to start Google Sign-In, immediate Drive scope authorization, and Firestore registration check:
+#### A. Starting Onboarding / Login
+Launch `LoginActivity` to start Google Sign-In, immediate Drive authorization, and Firestore profile check:
 
 ```kotlin
 val intent = Intent(this, com.gadware.dcadm.ui.login.LoginActivity::class.java)
 startActivity(intent)
 ```
 
-#### B. Opening the Backup & Restore Settings Screen
-Launch `BackupActivity` to view profile information, trigger manual Google Drive backup/restore, configure automatic routines, or navigate to Advance Options:
+#### B. Opening User Profile Management
+Launch `ProfileActivity` to view/edit user details, avatar URL, sign out, or delete account:
 
 ```kotlin
+// Helper
+DcadmConfig.openProfile(this)
+```
+
+#### C. Opening Backup & Restore Settings
+Launch `BackupActivity` to view last cloud backup timestamp, configure routine backups, or trigger Drive backup/restore:
+
+```kotlin
+// Option 1: Via Helper
+DcadmConfig.openBackup(this)
+
+// Option 2: Via Intent
 val intent = Intent(this, com.gadware.dcadm.ui.backup.BackupActivity::class.java)
 startActivity(intent)
 
-// Immediate Diagnostic Test for Routine Background Worker
+// Option 3: Immediate Diagnostic Test (Verifies routine BackupWorker in background without waiting 24h)
 val workId = DcadmConfig.triggerRoutineBackupNow(this)
 WorkManager.getInstance(this).getWorkInfoByIdLiveData(workId).observe(this) { workInfo ->
     // Observe running / succeeded / failed states
@@ -222,8 +242,8 @@ WorkManager.getInstance(this).getWorkInfoByIdLiveData(workId).observe(this) { wo
 > - Routine backup schedules (`Daily`, `Weekly`, `Monthly`) are automatically preserved and registered with Android `WorkManager` via an internal startup provider (`DcadmInitProvider`) and `DcadmConfig.init(context = this)`.
 > - Scheduled workers enforce `NetworkType.CONNECTED`, exponential retry backoffs, silent OAuth token renewal via `GoogleAuthUtil`, and safe Android 14+ `dataSync` foreground service handling.
 
-#### C. Opening Advance Options Directly
-Launch `AdvanceOptionsActivity` directly for local database export, import, diagnostics, and problem reporting:
+#### D. Opening Advance Options
+Launch `AdvanceOptionsActivity` for offline database export, import, diagnostics, and problem reporting:
 
 ```kotlin
 // Option 1: Via Helper
@@ -236,36 +256,115 @@ startActivity(intent)
 
 ---
 
-## 🎨 Customization & Branding
+## 🔔 Push Notifications & Topic Subscriptions
 
-`DcadmConfig.init(...)` provides complete control over your app's branding:
+`DCADM` automatically manages push notification channels and topic subscriptions based on user profile properties:
+
+### Subscribed Topics:
+* `all` — Broadcast to all app users.
+* `updates` — App version updates and announcements.
+* `paid_users` / `free_users` — Dynamic segment based on `userProfile.userType`.
+* `country_<countryCode>` — Geo-targeted notifications based on selected country (e.g. `country_us`, `country_bd`).
+
+### Programmatic Push Notification Testing / Manual Sync:
+```kotlin
+// Synchronize device token and refresh topic subscriptions
+DcadmNotificationManager.syncDeviceToken(context) { token ->
+    Log.d("FCM", "Token synced: $token")
+}
+
+// Display a local notification
+DcadmNotificationManager.showNotification(
+    context = context,
+    title = "Special Offer",
+    message = "Upgrade to Pro for unlimited exports!"
+)
+```
+
+---
+
+## 🚀 What's New in v1.6.0 (Google ID Token Sign-In & Nonce Support)
+
+Version `1.6.0` introduces a backward-compatible public authentication API that enables host applications to obtain the raw Google ID token during sign-in, with end-to-end cryptographic nonce verification to safeguard backend exchanges against replay attacks:
+
+### 1. New `signInWithIdToken` API & `GoogleSignInResult`
+- **Dual Credential Result**: Added `GoogleAuthManager.signInWithIdToken(activity, rawNonce): Result<GoogleSignInResult>`, returning both the authenticated `FirebaseUser` and the raw Google `idToken`.
+- **Result Model**:
+  ```kotlin
+  data class GoogleSignInResult(
+      val user: FirebaseUser,
+      val idToken: String
+  )
+  ```
+- **Same Unified Request**: Uses the same Android Credential Manager flow and Web Client ID configured in `DcadmConfig` as the standard `signIn(activity)` method.
+- **100% Backward Compatible**: The existing `signIn(activity): Result<FirebaseUser>` method retains its original signature and behavior.
+
+### 2. Cryptographic Nonce Hashing & Backend Replay Protection
+- **Automatic SHA-256 Hashing**: When the caller provides an optional `rawNonce` (e.g. generated dynamically or challenged by your backend), `GoogleAuthManager` automatically computes its lowercase SHA-256 hex digest and sends it to Google Identity Services via `GetGoogleIdOption.Builder.setNonce(hashedNonce)`.
+- **Backend Nonce Verification**: Google embeds the SHA-256 hash in the ID token's `nonce` claim. The host app sends the original unhashed `rawNonce` to its backend server alongside the ID token. The backend verifies that `SHA-256(rawNonce) == idToken.payload["nonce"]`, preventing man-in-the-middle replay attacks.
+- **Helper Method**: `GoogleAuthManager.hashNonce(rawNonce: String): String` is exposed statically should the host app or backend wish to compute identical SHA-256 hex digests.
+
+### 3. Security Hardening
+- **Token Masking**: `GoogleSignInResult.toString()` masks the raw token (`idToken=[PROTECTED]`) to prevent accidental token exposure in Logcat, analytics, or error reporting tools.
+- **Zero Disk / Session Persistence**: The Google ID token is **never** logged, and **never** stored in `SessionManager`, SharedPreferences, Room SQLite, or any local disk storage.
+- **One-Time Exchange & Expiry**: The Google ID token is designed strictly for a single exchange/verification with your backend server and expires in approximately one hour (~3600 seconds).
+
+### 4. Firestore Documentation Note
+- The real Cloud Firestore user collection is `/users/{uid}` (all lowercase by default, or as customized via `DcadmConfig.init(..., firestoreCollection = ...)`). Firestore collection names are case-sensitive.
+
+---
+
+### 💡 Usage Example: Obtaining ID Token & Verifying with Backend
 
 ```kotlin
-DcadmConfig.init(
-    dbName = "my_db",
-    hostAppName = "Store Manager",
-    clientId = getString(R.string.default_web_client_id),
-    dbClass = AppDatabase::class.java,
-    homeActivityClassName = MainActivity::class.java.name,
-    termsAndPrivacyUrl = "https://example.com/terms",
-    
-    // Custom App Logo (if omitted or null, dynamically uses app's launcher icon)
-    appLogoResId = R.drawable.my_custom_logo,
-    
-    // Optional Developer / Publisher Ribbon on Login Screen
-    showBranding = true,
-    companyName = "My Studio Inc.",
-    companyUrl = "mystudio.com",
-    companyLogoResId = R.drawable.ic_company_logo,
-    
-    onDatabaseReopenNeeded = {
-        AppDatabase.resetDatabase()
-    }
-)
+val authManager = GoogleAuthManager(context)
 
-// Configure optional support channels
-DcadmConfig.setReportProblemActivityClassName("com.example.myapp.ReportProblemActivity")
-DcadmConfig.setSupportEmail("support@example.com")
+lifecycleScope.launch {
+    // 1. Generate a secure random raw nonce (or obtain one from your backend challenge)
+    val rawNonce = UUID.randomUUID().toString()
+
+    // 2. Sign in with Google and receive both FirebaseUser and Google ID token
+    val result: Result<GoogleSignInResult> = authManager.signInWithIdToken(
+        activity = this@MainActivity,
+        rawNonce = rawNonce
+    )
+
+    result.onSuccess { (user, idToken) ->
+        // Firebase user is already authenticated
+        Log.d("Auth", "Signed in as: ${user.email} (UID: ${user.uid})")
+
+        // 3. Send idToken and rawNonce to your backend API for verification
+        // NOTE: Never log idToken or save it to local SharedPreferences/SessionManager!
+        myBackendApi.verifyTokenWithServer(
+            idToken = idToken,
+            rawNonce = rawNonce
+        )
+    }.onFailure { error ->
+        when (error) {
+            is GetCredentialCancellationException -> {
+                Log.d("Auth", "User cancelled Google Sign-In")
+            }
+            is NoCredentialException -> {
+                Log.d("Auth", "No Google credentials available on device")
+            }
+            else -> {
+                Log.e("Auth", "Sign-in failed: ${error.message}", error)
+            }
+        }
+    }
+}
+```
+
+---
+
+### 📦 Migration Guide: Upgrading from v1.5.1 to v1.6.0
+
+In your app module's `build.gradle.kts`:
+```diff
+dependencies {
+-   implementation("com.github.Saawry:dcadm:1.5.1")
++   implementation("com.github.Saawry:dcadm:1.6.0")
+}
 ```
 
 ---
@@ -361,7 +460,7 @@ dependencies {
 
 #### 3. User Permission Behavior
 - New registrations continue to initialize with `export = false`.
-- To enable database export and import for a user, update their document in Cloud Firestore (`/Users/{uid}`) or call:
+- To enable database export and import for a user, update their document in Cloud Firestore (`/users/{uid}`) or call:
 ```kotlin
 userRepository.updateExportStatus(uid, export = true, context)
 ```
@@ -484,13 +583,17 @@ val sessionManager = SessionManager(context)
 // Get cached user profile
 val profile: UserProfile? = sessionManager.getUserProfile()
 val userEmail: String? = sessionManager.getUserEmail()
-val lastBackupDate: Long = sessionManager.getLastBackupDate()
+val lastBackupTimestamp: Long = sessionManager.getLastBackupDate()
 val isRegistered: Boolean = sessionManager.getRegStatus()
+
+// Check if advance options are unlocked
+val isExportAllowed: Boolean = profile?.export ?: false
 
 // Silent sign-out
 val authManager = GoogleAuthManager(context)
 lifecycleScope.launch {
     authManager.signOut()
+    sessionManager.clearSession()
 }
 ```
 
@@ -520,7 +623,7 @@ lifecycleScope.launch {
 
 ## 🛡 ProGuard / R8 Rules
 
-If your app enables code shrinking (`isMinifyEnabled = true`), the library packages its own consumer rules automatically. If needed, ensure Google Drive and Room classes are kept:
+If your app enables code shrinking (`isMinifyEnabled = true`), the library packages its own consumer rules automatically. If needed, ensure Google Drive, Room, and DCADM classes are kept:
 
 ```proguard
 # Google Drive API & HTTP

@@ -6,7 +6,7 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.google.gson.Gson
 
-class SessionManager(context: Context) {
+open class SessionManager(context: Context) {
     private val prefs: SharedPreferences = getOrCreateEncryptedPrefs(context)
     private val gson = Gson()
 
@@ -64,12 +64,12 @@ class SessionManager(context: Context) {
         }
     }
 
-    fun saveUserProfile(profile: UserProfile) {
+    open fun saveUserProfile(profile: UserProfile) {
         val json = gson.toJson(profile)
         prefs.edit().putString("user_profile_json", json).apply()
     }
 
-    fun getUserProfile(): UserProfile? {
+    open fun getUserProfile(): UserProfile? {
         val json = prefs.getString("user_profile_json", null) ?: return null
         return try {
             gson.fromJson(json, UserProfile::class.java)
@@ -78,63 +78,63 @@ class SessionManager(context: Context) {
         }
     }
 
-    fun saveLastProfileSyncDate(date: String) {
+    open fun saveLastProfileSyncDate(date: String) {
         prefs.edit().putString("last_profile_sync_date", date).apply()
     }
 
-    fun getLastProfileSyncDate(): String {
+    open fun getLastProfileSyncDate(): String {
         return prefs.getString("last_profile_sync_date", "") ?: ""
     }
 
-    fun saveUserEmail(email: String) {
+    open fun saveUserEmail(email: String) {
         prefs.edit().putString("user_email", email).apply()
     }
 
-    fun getUserEmail(): String? {
+    open fun getUserEmail(): String? {
         return prefs.getString("user_email", null)
     }
 
-    fun saveDriveToken(token: String) {
+    open fun saveDriveToken(token: String) {
         prefs.edit().putString("drive_token", token).apply()
     }
 
-    fun getDriveToken(): String? {
+    open fun getDriveToken(): String? {
         return prefs.getString("drive_token", null)
     }
 
-    fun saveDeviceToken(token: String) {
+    open fun saveDeviceToken(token: String) {
         prefs.edit().putString("fcm_device_token", token).apply()
     }
 
-    fun getDeviceToken(): String? {
+    open fun getDeviceToken(): String? {
         return prefs.getString("fcm_device_token", null)
     }
 
-    fun saveRegStatus() {
+    open fun saveRegStatus() {
         prefs.edit().putBoolean("is_registered", true).apply()
     }
 
-    fun getRegStatus(): Boolean {
+    open fun getRegStatus(): Boolean {
         return prefs.getBoolean("is_registered", false)
     }
 
-    fun saveLastBackupDate(timestamp: Long) {
+    open fun saveLastBackupDate(timestamp: Long) {
         prefs.edit().putLong("last_backup_date", timestamp).apply()
     }
 
-    fun getLastBackupDate(): Long {
+    open fun getLastBackupDate(): Long {
         return prefs.getLong("last_backup_date", 0L)
     }
 
-    fun saveRoutineBackupConfig(config: String) {
+    open fun saveRoutineBackupConfig(config: String) {
         prefs.edit().putString("routine_backup_config", config).apply()
     }
 
-    fun getRoutineBackupConfig(): String {
+    open fun getRoutineBackupConfig(): String {
         return prefs.getString("routine_backup_config", "Never") ?: "Never"
     }
 
-    fun clearSession() {
+    open fun clearSession() {
         prefs.edit().clear().apply()
     }
 }

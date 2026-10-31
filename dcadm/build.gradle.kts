@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         minSdk = 24
-        version = "1.5.1"
+        version = "1.6.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -51,6 +51,10 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     publishing {
         singleVariant("release") {
             withSourcesJar()
@@ -64,7 +68,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "com.github.Saawry"
             artifactId = "dcadm"
-            version = "1.5.1"
+            version = "1.6.0"
             afterEvaluate {
                 from(components["release"])
             }
@@ -120,4 +124,8 @@ dependencies {
     implementation(libs.play.review.ktx)
     implementation(libs.play.app.update)
     implementation(libs.play.app.update.ktx)
+
+    testImplementation(libs.junit)
+    testImplementation("org.mockito:mockito-core:5.11.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
 }

@@ -126,7 +126,7 @@ object DcadmConfig {
                 val crashlytics = com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance()
                 crashlytics.setCustomKey("host_app_name", hostAppName)
                 crashlytics.setCustomKey("dcadm_db_name", dbName)
-                crashlytics.setCustomKey("dcadm_version", "1.5.1")
+                crashlytics.setCustomKey("dcadm_version", "1.6.0")
             }
         } catch (ignored: Exception) {}
 
@@ -286,6 +286,9 @@ object DcadmConfig {
     fun getDatabaseName() = databaseName
     fun getAppName() = appName
     fun getWebClientId() = webClientId
+    fun setWebClientId(clientId: String) {
+        this.webClientId = clientId
+    }
     fun getDatabaseClass() = databaseClass
     fun getHomeActivityClassName() = homeActivityClassName
     fun getTermsAndPrivacyUrl() = termsAndPrivacyUrl
